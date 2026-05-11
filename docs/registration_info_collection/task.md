@@ -1,0 +1,9 @@
+- [x] Prismaスキーマに `TenantServiceAccess` を追加
+- [x] `npx prisma db push` & `generate` を実行
+- [x] サイドバーの選択状態表示（NavItemのクライアントコンポーネント化）
+- [x] `src/app/dashboard/admin/actions.ts` に `updateTenantServiceAccess` を追加
+- [x] `src/app/dashboard/admin/page.tsx` にサービス利用制限設定UIを追加
+- [x] `src/app/dashboard/page.tsx` でサービス表示のフィルタリングを実装
+- [x] デフォルトですべてのサービスをONにする設定
+- [x] マスター管理にテナント削除機能を追加
+- [x] 動作確認

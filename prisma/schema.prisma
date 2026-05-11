@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id              String             @id @default(cuid())
+  name            String
+  userLimit       Int                @default(10)
+  maintenanceId   String?            // 保守ID
+  startMonth      String?            // 開始月
+  startYear       String?            // 開始年
+  paymentMethod   String?            // 支払方法
+  remarks         String?            // 備考
+  isActive        Boolean            @default(true)
+  users           User[]
+  preIssuedIds    PreIssuedId[]
+  tenantCredentials TenantCredential[]
+  variantAccesses TenantVariantAccess[]
+  serviceAccesses TenantServiceAccess[]
+  softwares       TenantSoftware[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model TenantSoftware {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        String?  // グループ用（例：DL Care, REAL4, Arrisなど）
+  name            String   // 販売商品名
+  count           Int?     // 総数
+  ecCount         Int?     // EC台数
+  purchaseDate    String?  // 初回納入日
+  lastUpdateDate  String?  // 最終更新日
+  version         String?  // Ver.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model User {
+  id               String           @id @default(cuid())
+  tenantId         String
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  role             String           // "SYSTEM_ADMIN", "TENANT_ADMIN", "GENERAL_USER"
+  address          String?
+  companyName      String?
+  contactName      String
+  phoneNumber      String?
+  email            String           @unique
+  avatarUrl        String?
+  preIssuedId      String?          @unique
+  passwordHash     String
+  isActive         Boolean          @default(true)
+  credentials      UserCredential[]
+  auditLogs        AuditLog[]
+  announcementReads UserAnnouncementRead[]
+  department       String?
+  postcode         String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([tenantId])
+}
+
+model PreIssuedId {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  issuedId        String   @unique
+  isUsed          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action          String
+  target          String?
+  metadata        String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Service {
+  id                String             @id @default(cuid())
+  name              String
+  url               String?
+  iconName          String?
+  groupLabel        String?
+  sortOrder         Int                @default(0)
+  description       String?
+  isActive          Boolean            @default(true)
+  credentials       UserCredential[]
+  tenantCredentials TenantCredential[]
+  variants          ServiceVariant[]
+  serviceAccesses   TenantServiceAccess[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model TenantCredential {
+  id         String   @id @default(cuid())
+  tenantId   String
+  serviceId  String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [serviceId], references: [id])
+  loginId    String
+  password   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, serviceId])
+}
+
+model UserCredential {
+  id          String   @id @default(cuid())
+  userId      String
+  serviceId   String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service     Service  @relation(fields: [serviceId], references: [id])
+  loginId     String
+  password    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, serviceId])
+}
+
+model ServiceVariant {
+  id          String               @id @default(cuid())
+  serviceId   String
+  service     Service              @relation(fields: [serviceId], references: [id])
+  label       String
+  url         String
+  sortOrder   Int                  @default(0)
+  accesses    TenantVariantAccess[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([serviceId])
+}
+
+model TenantVariantAccess {
+  id        String         @id @default(cuid())
+  tenantId  String
+  variantId String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variant   ServiceVariant @relation(fields: [variantId], references: [id])
+  createdAt DateTime       @default(now())
+
+  @@unique([tenantId, variantId])
+}
+
+model Announcement {
+  id              String                 @id @default(cuid())
+  title           String
+  content         String
+  type            String                 @default("INFO")
+  targetRole      String?
+  targetTenantId  String?
+  isActive        Boolean                @default(true)
+  publishedAt     DateTime               @default(now())
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  reads           UserAnnouncementRead[]
+}
+
+model UserAnnouncementRead {
+  id             String       @id @default(cuid())
+  userId         String
+  announcementId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+
+  @@unique([userId, announcementId])
+}
+
+model TenantServiceAccess {
+  id        String   @id @default(cuid())
+  tenantId  String
+  serviceId String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, serviceId])
+}
+
