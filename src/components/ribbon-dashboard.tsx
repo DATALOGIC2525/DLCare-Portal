@@ -32,14 +32,22 @@ interface RibbonDashboardProps {
 export function RibbonDashboard({ services, credMap, accents, variantMap, userRole }: RibbonDashboardProps) {
   // 初期値の読み込みをマウント後に行うためのハイドレーション対策
   const [selectedId, setSelectedId] = useState<string>('');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
-  // マウント時に前回選択していたIDを復旧、なければ最初のサービスを選択
+  // マウント時に前回選択していたIDと折りたたみ状態を復旧
   useEffect(() => {
-    const saved = sessionStorage.getItem('dlcare_last_service_id');
-    if (saved && services.some(s => s.id === saved)) {
-      setSelectedId(saved);
+    // 選択IDの復旧
+    const savedId = sessionStorage.getItem('dlcare_last_service_id');
+    if (savedId && services.some(s => s.id === savedId)) {
+      setSelectedId(savedId);
     } else {
       setSelectedId(services[0]?.id ?? '');
+    }
+
+    // 折りたたみ状態の復旧
+    const savedCollapsed = sessionStorage.getItem('dlcare_ribbon_collapsed');
+    if (savedCollapsed === 'true') {
+      setIsCollapsed(true);
     }
   }, [services]);
 
@@ -47,6 +55,13 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
   const handleSelect = (id: string) => {
     setSelectedId(id);
     sessionStorage.setItem('dlcare_last_service_id', id);
+  };
+
+  // 折りたたみ切り替え
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    sessionStorage.setItem('dlcare_ribbon_collapsed', String(newState));
   };
 
   const selectedService = services.find(s => s.id === selectedId);
@@ -70,71 +85,86 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#F0F0F0' }}>
 
       {/* ── リボンバー ── */}
-      <div className="shrink-0 border-b-2 border-slate-300" style={{ background: '#FAFAFA' }}>
+      <div className="shrink-0 border-b-2 border-slate-300 transition-all duration-300 ease-in-out" style={{ background: '#FAFAFA' }}>
 
         {/* リボンタブ風タイトル */}
-        <div className="flex items-center px-4 py-1.5 border-b border-slate-200 gap-4"
+        <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-200"
           style={{ background: '#1E3A8A' }}>
-          <span className="text-white font-bold text-sm tracking-wide">ポータルサービス一覧</span>
-          <span className="text-blue-300 text-xs">— ログイン情報を確認・コピーします</span>
+          <div className="flex items-center gap-4">
+            <span className="text-white font-bold text-sm tracking-wide">ポータルサービス一覧</span>
+            <span className="text-blue-300 text-xs">— ログイン情報を確認・コピーします</span>
+          </div>
+          
+          <button 
+            onClick={toggleCollapse}
+            className="p-1 hover:bg-white/10 rounded transition-colors text-white/70 hover:text-white flex items-center gap-1.5"
+            title={isCollapsed ? "展開する" : "折りたたむ"}
+          >
+            <span className="text-[10px] font-bold tracking-tighter uppercase opacity-60">
+              {isCollapsed ? "Menu" : "Minimize"}
+            </span>
+            {isCollapsed ? <Icons.ChevronDown className="h-4 w-4" /> : <Icons.ChevronUp className="h-4 w-4" />}
+          </button>
         </div>
 
-        {/* リボン本体 */}
-        <div className="flex w-full overflow-x-auto">
-          {dynamicGroups.map((group) => (
-            <div key={group.label} className="flex border-r border-slate-200 last:border-r-0">
-              <div className="flex flex-col min-w-[120px]">
-                {/* ボタン行 */}
-                <div className="flex items-start px-2 pt-2 pb-1 gap-1">
-                  {group.svcs.map(svc => {
-                    const Icon = (Icons as any)[svc.iconName || 'Link'] || Icons.Link;
-                    const accent = accents[svc.name] ?? '#3B82F6';
-                    const isSelected = svc.id === selectedId;
+        {/* リボン本体 - アニメーション付き */}
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'}`}>
+          <div className="flex w-full overflow-x-auto">
+            {dynamicGroups.map((group) => (
+              <div key={group.label} className="flex border-r border-slate-200 last:border-r-0">
+                <div className="flex flex-col min-w-[120px]">
+                  {/* ボタン行 */}
+                  <div className="flex items-start px-2 pt-2 pb-1 gap-1">
+                    {group.svcs.map(svc => {
+                      const Icon = (Icons as any)[svc.iconName || 'Link'] || Icons.Link;
+                      const accent = accents[svc.name] ?? '#3B82F6';
+                      const isSelected = svc.id === selectedId;
 
-                    return (
-                      <button
-                        key={svc.id}
-                        onClick={() => handleSelect(svc.id)}
-                        className="flex flex-col items-center px-2 py-2 rounded-md transition-all w-20 text-center group"
-                        style={{
-                          background: isSelected ? `${accent}20` : 'transparent',
-                          border: isSelected ? `1px solid ${accent}60` : '1px solid transparent',
-                        }}
-                        title={svc.name}
-                      >
-                        <div
-                          className="w-14 h-14 rounded-xl flex items-center justify-center mb-1.5 transition-all group-hover:scale-105"
+                      return (
+                        <button
+                          key={svc.id}
+                          onClick={() => handleSelect(svc.id)}
+                          className="flex flex-col items-center px-2 py-2 rounded-md transition-all w-20 text-center group"
                           style={{
-                            background: isSelected
-                              ? `linear-gradient(145deg, ${accent}, ${accent}BB)`
-                              : `${accent}18`,
-                            boxShadow: isSelected ? `0 2px 8px ${accent}50` : 'none',
+                            background: isSelected ? `${accent}20` : 'transparent',
+                            border: isSelected ? `1px solid ${accent}60` : '1px solid transparent',
                           }}
+                          title={svc.name}
                         >
-                          <Icon
-                            className="h-7 w-7 transition-all"
-                            style={{ color: isSelected ? '#fff' : accent }}
-                          />
-                        </div>
-                        <span
-                          className="text-[10px] leading-tight font-medium text-center line-clamp-2"
-                          style={{
-                            color: isSelected ? accent : '#374151',
-                          }}
-                        >
-                          {svc.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* グループラベル */}
-                <div className="px-2 pb-1 border-t border-slate-200 pt-1 text-center">
-                  <span className="text-[9px] text-slate-400 tracking-wide font-bold">{group.label}</span>
+                          <div
+                            className="w-14 h-14 rounded-xl flex items-center justify-center mb-1.5 transition-all group-hover:scale-105"
+                            style={{
+                              background: isSelected
+                                ? `linear-gradient(145deg, ${accent}, ${accent}BB)`
+                                : `${accent}18`,
+                              boxShadow: isSelected ? `0 2px 8px ${accent}50` : 'none',
+                            }}
+                          >
+                            <Icon
+                              className="h-7 w-7 transition-all"
+                              style={{ color: isSelected ? '#fff' : accent }}
+                            />
+                          </div>
+                          <span
+                            className="text-[10px] leading-tight font-medium text-center line-clamp-2"
+                            style={{
+                              color: isSelected ? accent : '#374151',
+                            }}
+                          >
+                            {svc.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* グループラベル */}
+                  <div className="px-2 pb-1 border-t border-slate-200 pt-1 text-center">
+                    <span className="text-[9px] text-slate-400 tracking-wide font-bold">{group.label}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
@@ -173,6 +203,14 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
                     src="https://kasanare.com/user/datalogic2"
                     className="w-full h-full border-0 rounded-b-xl"
                     title="Kasanare Chat"
+                  />
+                </div>
+              ) : selectedService.name === 'スタートサポート' ? (
+                <div className="absolute inset-0">
+                  <iframe 
+                    src="https://schedule-set.vercel.app/"
+                    className="w-full h-full border-0 rounded-b-xl"
+                    title="Start Support Dashboard"
                   />
                 </div>
               ) : selectedService.name === 'オンラインセミナー' ? (
@@ -258,7 +296,7 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
 
               {/* サービスを開くボタン */}
               <div className="pt-6 border-t border-slate-100 flex justify-center">
-                {selectedService.name === 'く～chat' || selectedService.name === 'オンラインセミナー' ? null : selectedService.url ? (
+                {selectedService.name === 'く～chat' || selectedService.name === 'オンラインセミナー' || selectedService.name === 'スタートサポート' ? null : selectedService.url ? (
                   <a
                     href={selectedService.url}
                     target="_blank"

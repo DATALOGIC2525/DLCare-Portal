@@ -1,0 +1,4 @@
+- [x] `src/components/ribbon-dashboard.tsx` の修正
+    - [x] 「スタートサポート」用 iframe の追加
+    - [x] 「サービスを開く」ボタンの表示制御
+- [x] 動作確認
