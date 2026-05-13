@@ -8,8 +8,7 @@ import bcrypt from 'bcryptjs';
 /** テナント管理者が担当者アカウントを直接作成する */
 export async function createGeneralUser(formData: FormData) {
   const session = await auth();
-  const currentUserRole = session?.user?.role;
-  if (currentUserRole !== 'TENANT_ADMIN' && currentUserRole !== 'SYSTEM_ADMIN') {
+  if (!session?.user || (session.user.role !== 'TENANT_ADMIN' && session.user.role !== 'SYSTEM_ADMIN')) {
     throw new Error('Unauthorized');
   }
 
@@ -71,10 +70,10 @@ export async function createGeneralUser(formData: FormData) {
 /** ユーザーのロール（権限）を更新する */
 export async function updateUserRole(userId: string, role: string) {
   const session = await auth();
-  const currentUserRole = session?.user?.role;
-  if (currentUserRole !== 'TENANT_ADMIN' && currentUserRole !== 'SYSTEM_ADMIN') {
+  if (!session?.user || (session.user.role !== 'TENANT_ADMIN' && session.user.role !== 'SYSTEM_ADMIN')) {
     throw new Error('Unauthorized');
   }
+  const currentUserRole = session.user.role;
 
   // 1. 対象ユーザーのテナント情報を取得
   const targetUser = await prisma.user.findUnique({ where: { id: userId } });
@@ -125,8 +124,7 @@ export async function updateUserRole(userId: string, role: string) {
 /** 担当者のアカウントを停止／再開する */
 export async function toggleUserStatus(userId: string, isActive: boolean) {
   const session = await auth();
-  const role = session?.user?.role;
-  if (role !== 'TENANT_ADMIN' && role !== 'SYSTEM_ADMIN') {
+  if (!session?.user || (session.user.role !== 'TENANT_ADMIN' && session.user.role !== 'SYSTEM_ADMIN')) {
     throw new Error('Unauthorized');
   }
 

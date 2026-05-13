@@ -13,8 +13,7 @@ import { Users, UserPlus, ShieldCheck, UserCog, ArrowLeft, MoreHorizontal, UserC
 
 export default async function TenantUsersPage() {
   const session = await auth();
-  const role = session?.user?.role;
-  if (role !== 'TENANT_ADMIN' && role !== 'SYSTEM_ADMIN') {
+  if (!session?.user || (session.user.role !== 'TENANT_ADMIN' && session.user.role !== 'SYSTEM_ADMIN')) {
     redirect('/dashboard');
   }
 
