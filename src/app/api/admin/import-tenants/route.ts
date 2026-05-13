@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,7 +40,7 @@ export async function POST(req: NextRequest) {
     ];
     
     // レスポンス用のCSVのヘッダーを作成 (BOMを付与してExcelの文字化けを防止)
-    let resultCsv = '\uFEFFユーザー名,保守ID,登録用ID\n';
+    let resultCsv = '\uFEFFユーザー名,保守ID,ステータス\n';
 
     for (const row of dataRows) {
       const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
@@ -58,9 +57,6 @@ export async function POST(req: NextRequest) {
       const startYear = parseCol(3) || null;
       const paymentMethod = parseCol(4) || null;
       const remarks = parseCol(13) || null;
-
-      // ランダムなIDを生成
-      const newId = `DL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
       // トランザクションで保存
       await prisma.$transaction(async (tx) => {
@@ -96,17 +92,10 @@ export async function POST(req: NextRequest) {
             data: softwaresToCreate
           });
         }
-
-        await tx.preIssuedId.create({
-          data: {
-            tenantId: tenant.id,
-            issuedId: newId
-          }
-        });
       });
 
       // 結果CSVの行を追加
-      resultCsv += `"${name}","${maintenanceId || ''}","${newId}"\n`;
+      resultCsv += `"${name}","${maintenanceId || ''}","登録完了"\n`;
     }
 
     // CSVファイルとしてレスポンスを返す

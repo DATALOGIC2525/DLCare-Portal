@@ -3,7 +3,6 @@
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import crypto from 'crypto';
 
 export async function updateTenantLimit(tenantId: string, formData: FormData) {
   const session = await auth();
@@ -71,12 +70,14 @@ export async function deleteTenant(tenantId: string) {
 }
 
 
+import bcrypt from 'bcryptjs';
+
 /**
- * テナントを新規作成し、テナント管理者用の事前発行IDを1つ発行する。
+ * テナントを新規作成する。
  * 同時に、3つの主要サービス（く～chat・データロジックダイレクト・オンラインセミナー）の
  * テナント共通認証情報を保存する。
  */
-export async function createTenantWithId(formData: FormData) {
+export async function createTenant(formData: FormData) {
   const session = await auth();
   if (session?.user?.role !== 'SYSTEM_ADMIN') throw new Error('Unauthorized');
 
@@ -100,17 +101,10 @@ export async function createTenantWithId(formData: FormData) {
   const seminarId = formData.get('seminar_loginId') as string;
   const seminarPw = formData.get('seminar_password') as string;
 
-  const newId = `DL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
   await prisma.$transaction(async (tx) => {
     // テナント作成
     const tenant = await tx.tenant.create({
       data: { name: tenantName, userLimit, maintenanceId, startMonth, startYear, paymentMethod, remarks }
-    });
-
-    // 管理者用登録IDを発行
-    await tx.preIssuedId.create({
-      data: { tenantId: tenant.id, issuedId: newId }
     });
 
     // デフォルトですべてのサービスを表示設定にする
@@ -147,6 +141,44 @@ export async function createTenantWithId(formData: FormData) {
           });
         }
       }
+    }
+  });
+
+  revalidatePath('/dashboard/admin');
+}
+
+/**
+ * システム管理者が特定のテナントにユーザーを直接登録する
+ */
+export async function registerUserByAdmin(tenantId: string, formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== 'SYSTEM_ADMIN') throw new Error('Unauthorized');
+
+  const contactName = formData.get('contactName') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const role = (formData.get('role') as string) || 'GENERAL_USER';
+  const department = (formData.get('department') as string) || null;
+
+  if (!contactName || !email || !password) {
+    throw new Error('必須項目が不足しています');
+  }
+
+  // 重複チェック
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error('このメールアドレスは既に登録されています');
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await prisma.user.create({
+    data: {
+      tenantId,
+      contactName,
+      email,
+      passwordHash,
+      role,
+      department,
+      isActive: true,
     }
   });
 

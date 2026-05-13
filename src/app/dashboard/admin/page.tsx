@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { createTenantWithId } from './actions';
+import { createTenant } from './actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,7 +39,6 @@ export default async function AdminDashboard(props: { searchParams?: Promise<{ p
       take: pageSize,
       include: {
         users: { orderBy: { createdAt: 'asc' } },
-        preIssuedIds: true,
         tenantCredentials: { include: { service: true } },
         variantAccesses: { select: { variantId: true } },
         serviceAccesses: { select: { serviceId: true } },
@@ -74,10 +73,10 @@ export default async function AdminDashboard(props: { searchParams?: Promise<{ p
             <Building2 className="h-4 w-4" />
             新規ユーザー（顧客企業）登録
           </CardTitle>
-          <CardDescription className="text-xs">新しい顧客企業を登録し、初期の管理者用IDを発行します。</CardDescription>
+          <CardDescription className="text-xs">新しい顧客企業を登録します。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createTenantWithId} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <form action={createTenant} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="tenantName" className="text-xs font-bold text-slate-700">ユーザー（企業）名 <span className="text-red-500">*</span></Label>
               <Input id="tenantName" name="tenantName" placeholder="例：株式会社〇〇" required className="h-9 bg-white" />
@@ -110,7 +109,7 @@ export default async function AdminDashboard(props: { searchParams?: Promise<{ p
             </div>
             <div className="md:col-span-2 lg:col-span-3 pt-2">
               <Button type="submit" className="w-full md:w-auto px-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm h-9">
-                ユーザーを登録して管理IDを発行
+                顧客企業を登録
               </Button>
             </div>
           </form>

@@ -34,7 +34,6 @@ interface Tenant {
   startYear: string | null;
   paymentMethod: string | null;
   remarks: string | null;
-  preIssuedIds: { id: string; issuedId: string; isUsed: boolean }[];
   users: { id: string; contactName: string; email: string; department: string | null; role: string; createdAt: Date }[];
   tenantCredentials: { service: { id: string; name: string }; loginId: string; password: string | null }[];
   serviceAccesses: { serviceId: string }[];
@@ -226,17 +225,7 @@ function TenantRow({
             {isMaster && <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 px-1.5">SYSTEM MASTER</Badge>}
           </div>
           <div className="flex items-center gap-4 mt-1">
-            {/* 管理用登録ID */}
-            {tenant.preIssuedIds.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {tenant.preIssuedIds.map(pid => (
-                  <div key={pid.id} className="flex items-center gap-1">
-                    <CopyBadge text={pid.issuedId} />
-                    {pid.isUsed && <span className="text-[9px] text-slate-400">(登録済み)</span>}
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* ユーザー数と認証情報のステータス */}
             <span className="text-xs text-slate-400 flex items-center gap-1">
               <Users className="h-3 w-3" /> {tenant.users.length} / {tenant.userLimit}名
             </span>
@@ -297,7 +286,7 @@ function TenantRow({
 
             {openSection === 'info'      && <InfoPanel tenant={tenant} />}
             {openSection === 'softwares' && <TenantSoftwareTable tenantId={tenant.id} softwares={tenant.softwares} />}
-            {openSection === 'users'     && <TenantUserTable users={tenant.users} />}
+            {openSection === 'users'     && <TenantUserTable tenantId={tenant.id} users={tenant.users} />}
             {openSection === 'limit'     && <LimitPanel tenant={tenant} />}
             {openSection === 'creds'     && <CredsPanel tenant={tenant} services={services} />}
             {openSection === 'services'  && <ServicesPanel tenant={tenant} services={services} />}
