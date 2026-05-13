@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { 
   UserPlus, Building, Mail, Lock, Phone, MapPin, 
   User, ChevronRight, ChevronLeft, CheckCircle2, 
-  MonitorPlay, ShoppingCart, MessageSquare, Info 
+  MonitorPlay, ShoppingCart, MessageSquare, Info, Hash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,6 +23,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState<boolean>(false);
   
   const [formData, setFormData] = useState({
+    dlcareId: '',
     companyName: '',
     address: '',
     phoneNumber: '',
@@ -35,20 +36,22 @@ export default function RegisterPage() {
     ecRepName: '',
     ecRepEmail: '',
     ecPassword: '',
-    // く～chat申請
+    // く～chat・S/F 3DView申請
     kuchatRepName: '',
     kuchatRepEmail: '',
     kuchatPassword: '',
-    // オンラインセミナー申請
-    seminarRepName: '',
-    seminarRepEmail: '',
-    seminarPassword: '',
     // その他
     invoiceEmail: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    // 電話番号は数字のみにする
+    if (name === 'phoneNumber') {
+      value = value.replace(/\D/g, '');
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -142,6 +145,25 @@ export default function RegisterPage() {
                     </div>
                     
                     <div className="space-y-2">
+                      <Label htmlFor="dlcareId" className="text-xs font-black text-slate-600 uppercase tracking-widest">
+                        DLCare ID（保守ID） <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Hash className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Input 
+                          id="dlcareId" 
+                          name="dlcareId" 
+                          required 
+                          value={formData.dlcareId}
+                          onChange={handleChange}
+                          placeholder="例: DC-123456" 
+                          className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus:ring-blue-500 font-bold" 
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium italic">※保守契約証書に記載されているIDを入力してください。</p>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="companyName" className="text-xs font-black text-slate-600 uppercase tracking-widest">
                         会社名 <span className="text-red-500">*</span>
                       </Label>
@@ -187,10 +209,11 @@ export default function RegisterPage() {
                           required 
                           value={formData.phoneNumber}
                           onChange={handleChange}
-                          placeholder="03-1234-5678" 
+                          placeholder="0312345678" 
                           className="pl-10 h-11 bg-slate-50/50 border-slate-200 focus:ring-blue-500" 
                         />
                       </div>
+                      <p className="text-[10px] text-slate-400 font-medium italic">※ハイフンなしの数字のみで入力してください。</p>
                     </div>
                   </div>
                 </motion.div>
@@ -236,8 +259,11 @@ export default function RegisterPage() {
                           value={formData.contactNameKana}
                           onChange={handleChange}
                           placeholder="ヤマダ タロウ" 
+                          pattern="^[ァ-ヶー\s]+$"
+                          title="全角カタカナで入力してください"
                           className="h-11 bg-slate-50/50" 
                         />
+                        <p className="text-[10px] text-slate-400 font-medium italic">※全角カタカナで入力してください。</p>
                       </div>
                     </div>
 
@@ -252,7 +278,7 @@ export default function RegisterPage() {
                         required 
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="name@company.co.jp" 
+                        placeholder="example@datalogic.co.jp" 
                         className="h-11 bg-slate-50/50" 
                       />
                     </div>
@@ -304,33 +330,21 @@ export default function RegisterPage() {
                     {/* Ku~chat */}
                     <div className="p-4 rounded-2xl bg-blue-50/30 border border-blue-100 space-y-4">
                       <h4 className="font-black text-blue-800 text-sm flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" /> く～chat
+                        <MessageSquare className="h-4 w-4" /> く～chat ・ S/F com-pass 3D view
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Input name="kuchatRepName" required placeholder="担当者氏名" value={formData.kuchatRepName} onChange={handleChange} className="h-10 text-sm bg-white" />
                         <Input name="kuchatRepEmail" type="email" required placeholder="メールアドレス" value={formData.kuchatRepEmail} onChange={handleChange} className="h-10 text-sm bg-white" />
-                        <Input name="kuchatPassword" type="password" required placeholder="専用パスワード" value={formData.kuchatPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
-                      </div>
-                    </div>
-
-                    {/* Seminar */}
-                    <div className="p-4 rounded-2xl bg-indigo-50/30 border border-indigo-100 space-y-4">
-                      <h4 className="font-black text-indigo-800 text-sm flex items-center gap-2">
-                        <MonitorPlay className="h-4 w-4" /> オンラインセミナー
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Input name="seminarRepName" required placeholder="担当者氏名" value={formData.seminarRepName} onChange={handleChange} className="h-10 text-sm bg-white" />
-                        <Input name="seminarRepEmail" type="email" required placeholder="メールアドレス" value={formData.seminarRepEmail} onChange={handleChange} className="h-10 text-sm bg-white" />
-                        <Input name="seminarPassword" type="password" required placeholder="専用パスワード" value={formData.seminarPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
+                        <Input name="kuchatPassword" type="password" required placeholder="く～chat パスワード" value={formData.kuchatPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
                       </div>
                     </div>
 
                     {/* Invoice Email */}
                     <div className="space-y-2 px-1">
                       <Label htmlFor="invoiceEmail" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        請求書送付用メールアドレス <span className="text-red-500">*</span>
+                        請求書送付用メールアドレス
                       </Label>
-                      <Input id="invoiceEmail" name="invoiceEmail" type="email" required value={formData.invoiceEmail} onChange={handleChange} placeholder="billing@company.co.jp" className="h-10 bg-slate-50/50" />
+                      <Input id="invoiceEmail" name="invoiceEmail" type="email" value={formData.invoiceEmail} onChange={handleChange} placeholder="billing@company.co.jp" className="h-10 bg-slate-50/50" />
                     </div>
                   </div>
                 </motion.div>

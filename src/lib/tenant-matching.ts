@@ -4,6 +4,7 @@
  */
 
 export interface TenantMatchInput {
+  dlcareId?: string;
   name: string;
   address?: string;
   phoneNumber?: string;
@@ -52,9 +53,10 @@ export function getEmailDomain(email: string): string {
 /**
  * スコアリングによるテナント照合
  * 
- * 優先順位: 会社名 > 住所 > メールドメイン
+ * 優先順位: DLCare ID > 会社名 > 住所 > メールドメイン
  * 
  * スコア計算:
+ * - DLCare ID（保守ID）が一致: 50点 (最優先)
  * - 名前（正規化後）が完全一致: 10点
  * - 住所（前方10文字）が一致: 5点
  * - メールドメインが一致: 3点 (独自ドメインのみ)
@@ -65,14 +67,29 @@ export function getEmailDomain(email: string): string {
  */
 export function calculateMatchScore(
   input: TenantMatchInput,
-  target: { name: string; address?: string | null; phoneNumber?: string | null; domains?: string[] }
+  target: { 
+    name: string; 
+    maintenanceId?: string | null;
+    address?: string | null; 
+    phoneNumber?: string | null; 
+    domains?: string[] 
+  }
 ): number {
   let score = 0;
+
+  // 1. DLCare ID チェック (最優先)
+  if (input.dlcareId && target.maintenanceId) {
+    const id1 = input.dlcareId.trim().toUpperCase();
+    const id2 = target.maintenanceId.trim().toUpperCase();
+    if (id1 === id2 && id1 !== '') {
+      score += 50;
+    }
+  }
 
   const normalizedInputName = normalizeCompanyName(input.name);
   const normalizedTargetName = normalizeCompanyName(target.name);
 
-  // 1. 名前チェック (最優先)
+  // 2. 名前チェック
   if (normalizedInputName === normalizedTargetName) {
     score += 10;
   } else if (
@@ -82,7 +99,7 @@ export function calculateMatchScore(
     score += 2;
   }
 
-  // 2. 住所チェック (同名企業の判別用)
+  // 3. 住所チェック (同名企業の判別用)
   if (input.address && target.address) {
     const a1 = input.address.replace(/\s+/g, '').slice(0, 10);
     const a2 = target.address.replace(/\s+/g, '').slice(0, 10);

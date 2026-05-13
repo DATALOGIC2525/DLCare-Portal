@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { 
-      companyName, address, phoneNumber, 
+      dlcareId, companyName, address, phoneNumber, 
       contactName, contactNameKana, email, password,
       ...serviceMetadata 
     } = body;
@@ -37,9 +37,10 @@ export async function POST(request: Request) {
       ));
 
       const score = calculateMatchScore(
-        { name: companyName, address, phoneNumber, email },
+        { dlcareId, name: companyName, address, phoneNumber, email },
         { 
           name: tenant.name, 
+          maintenanceId: tenant.maintenanceId,
           address: tenant.address, 
           phoneNumber: tenant.phoneNumber,
           domains: tenantDomains
