@@ -12,7 +12,7 @@
 - 以下の3ステップ構成に変更しました：
     - **Step 1**: 企業情報（照合用）
     - **Step 2**: ユーザーアカウント情報
-    - **Step 3**: 付帯サービス利用申請（く〜chat、ECサイト等）
+    - **Step 3**: 付帯サービス利用申請（EC、く〜chat、セミナーすべて必須入力）
 
 ### 3. 完了画面の追加 (`src/app/register/success/page.tsx`)
 - 申請完了後のメッセージ画面を新規作成。
@@ -21,6 +21,7 @@
 ### 4. データベースとAPIの統合
 - `prisma/schema.prisma` を更新し、`Tenant` に住所・電話番号フィールドを追加。
 - `User` に `registrationMetadata` (JSON) を追加し、申請内容を永続化できるようにしました。
+- 各サービスの担当者名、メール、パスワード情報が `registrationMetadata` に保存されます。
 - `src/app/api/registration/route.ts` を新ロジックに差し替え、発行IDなしでの紐付けを可能にしました。
 
 ## 検証結果
