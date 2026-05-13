@@ -13,7 +13,7 @@ import {
   LayoutGrid, Download, X, ShoppingCart, MessageSquare, MonitorPlay,
 } from 'lucide-react';
 import {
-  updateTenantLimit, toggleTenantStatus,
+  toggleTenantStatus,
   updateTenantCredential, updateTenantVariantAccess,
   updateTenantInfo, updateTenantServiceAccess,
 } from './actions';
