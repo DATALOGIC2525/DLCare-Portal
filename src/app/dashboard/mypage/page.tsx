@@ -102,15 +102,9 @@ export default async function MyPage() {
                 <Label className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">企業名</Label>
                 <p className="text-xl font-black leading-tight mt-0.5">{tenant.name}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <Label className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">保守ID</Label>
-                  <p className="font-mono font-bold text-lg text-white">{tenant.maintenanceId || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">利用可能ユーザー</Label>
-                  <p className="font-bold text-lg">{tenant.userLimit} 名</p>
-                </div>
+              <div className="pt-2">
+                <Label className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest">保守ID</Label>
+                <p className="font-mono font-bold text-lg text-white">{tenant.maintenanceId || '-'}</p>
               </div>
 
               {(user.role === 'TENANT_ADMIN' || user.role === 'SYSTEM_ADMIN') && (

@@ -17,15 +17,17 @@ export function NavItem({
   href, 
   iconName, 
   label, 
-  isCollapsed 
+  isCollapsed,
+  forceInactive = false
 }: { 
   href: string; 
   iconName: string; 
   label: string;
   isCollapsed?: boolean;
+  forceInactive?: boolean;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = forceInactive ? false : (pathname === href);
   
   const Icon = IconMap[iconName] || HelpCircle;
 

@@ -23,67 +23,16 @@ interface Service {
 
 interface RibbonDashboardProps {
   services: Service[];
+  selectedId: string; // プロップとして受け取る
   credMap: Record<string, Credential | null>;
   accents: Record<string, string>;
   variantMap: Record<string, { id: string; label: string; url: string }[]>;
   userRole: string;
 }
 
-export function RibbonDashboard({ services, credMap, accents, variantMap, userRole }: RibbonDashboardProps) {
-  const [selectedId, setSelectedId] = useState<string>('');
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+export function RibbonDashboard({ services, selectedId, credMap, accents, variantMap, userRole }: RibbonDashboardProps) {
+  // 以前の選択状態管理ロジックを削除
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // マウント時に前回選択していたIDと折りたたみ状態を復旧
-  useEffect(() => {
-    const savedId = sessionStorage.getItem('dlcare_last_service_id');
-    if (savedId && services.some(s => s.id === savedId)) {
-      setSelectedId(savedId);
-    } else {
-      setSelectedId(services[0]?.id ?? '');
-    }
-
-    const savedCollapsed = sessionStorage.getItem('dlcare_ribbon_collapsed');
-    if (savedCollapsed === 'true') {
-      setIsCollapsed(true);
-    }
-  }, [services]);
-
-  // 選択変更時に保存
-  const handleSelect = (id: string) => {
-    setSelectedId(id);
-    sessionStorage.setItem('dlcare_last_service_id', id);
-  };
-
-  // 折りたたみ切り替え
-  const toggleCollapse = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    sessionStorage.setItem('dlcare_ribbon_collapsed', String(newState));
-  };
-
-  // ドラッグスクロールの実装
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (!scrollContainerRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
-  };
-
-  const onMouseLeave = () => setIsDragging(false);
-  const onMouseUp = () => setIsDragging(false);
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollContainerRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // スクロール速度の倍率
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
 
   const selectedService = services.find(s => s.id === selectedId);
   const selectedCred = selectedId ? credMap[selectedId] : null;
@@ -93,110 +42,9 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
     : Icons.Link;
   const selectedVariants = selectedId ? (variantMap[selectedId] ?? []) : [];
 
-  // DB の groupLabel でサービスを動的グループ化
-  const groupMap = new Map<string, Service[]>();
-  for (const svc of services) {
-    const label = svc.groupLabel ?? '未分類';
-    if (!groupMap.has(label)) groupMap.set(label, []);
-    groupMap.get(label)!.push(svc);
-  }
-  const dynamicGroups = Array.from(groupMap.entries()).map(([label, svcs]) => ({ label, svcs }));
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#F0F0F0' }}>
-
-      {/* ── リボンバー ── */}
-      <div className="shrink-0 border-b-2 border-slate-300 transition-all duration-300 ease-in-out" style={{ background: '#FAFAFA' }}>
-
-        {/* リボンタブ風タイトル */}
-        <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-200"
-          style={{ background: '#1E3A8A' }}>
-          <div className="flex items-center gap-4">
-            <span className="text-white font-bold text-xs md:text-sm tracking-wide ml-10 md:ml-0">ポータルサービス一覧</span>
-            <span className="hidden md:inline text-blue-300 text-xs">— ログイン情報を確認・コピーします</span>
-          </div>
-          
-          <button 
-            onClick={toggleCollapse}
-            className="p-1 hover:bg-white/10 rounded transition-colors text-white/70 hover:text-white flex items-center gap-1.5"
-            title={isCollapsed ? "展開する" : "折りたたむ"}
-          >
-            <span className="text-[10px] font-bold tracking-tighter uppercase opacity-60">
-              {isCollapsed ? "Menu" : "Minimize"}
-            </span>
-            {isCollapsed ? <Icons.ChevronDown className="h-4 w-4" /> : <Icons.ChevronUp className="h-4 w-4" />}
-          </button>
-        </div>
-
-        {/* リボン本体 - アニメーション付き */}
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'}`}>
-          <div 
-            ref={scrollContainerRef}
-            onMouseDown={onMouseDown}
-            onMouseLeave={onMouseLeave}
-            onMouseUp={onMouseUp}
-            onMouseMove={onMouseMove}
-            className={`flex w-full overflow-x-auto scrollbar-hide select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
-          >
-            {dynamicGroups.map((group) => (
-              <div key={group.label} className="flex border-r border-slate-200 last:border-r-0">
-                <div className="flex flex-col min-w-[100px] md:min-w-[120px]">
-                  {/* ボタン行 */}
-                  <div className="flex items-start px-2 pt-2 pb-1 gap-1">
-                    {group.svcs.map(svc => {
-                      const Icon = (Icons as any)[svc.iconName || 'Link'] || Icons.Link;
-                      const accent = accents[svc.name] ?? '#3B82F6';
-                      const isSelected = svc.id === selectedId;
-
-                      return (
-                        <button
-                          key={svc.id}
-                          onClick={() => !isDragging && handleSelect(svc.id)}
-                          className="flex flex-col items-center px-1 md:px-2 py-2 rounded-md transition-all w-16 md:w-20 text-center group"
-                          style={{
-                            background: isSelected ? `${accent}20` : 'transparent',
-                            border: isSelected ? `1px solid ${accent}60` : '1px solid transparent',
-                          }}
-                          title={svc.name}
-                        >
-                          <div
-                            className="w-11 h-11 md:w-14 md:h-14 rounded-xl flex items-center justify-center mb-1.5 transition-all group-hover:scale-105"
-                            style={{
-                              background: isSelected
-                                ? `linear-gradient(145deg, ${accent}, ${accent}BB)`
-                                : `${accent}18`,
-                              boxShadow: isSelected ? `0 2px 8px ${accent}50` : 'none',
-                            }}
-                          >
-                            <Icon
-                              className="h-5 w-5 md:h-7 md:w-7 transition-all"
-                              style={{ color: isSelected ? '#fff' : accent }}
-                            />
-                          </div>
-                          <span
-                            className="text-[9px] md:text-[10px] leading-tight font-medium text-center line-clamp-2"
-                            style={{
-                              color: isSelected ? accent : '#374151',
-                            }}
-                          >
-                            {svc.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* グループラベル */}
-                  <div className="px-2 pb-1 border-t border-slate-200 pt-1 text-center">
-                    <span className="text-[8px] md:text-[9px] text-slate-400 tracking-wide font-bold">{group.label}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── 詳細パネル ── */}
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#F8FAFC' }}>
+      {/* 詳細パネル */}
       <div className="flex-1 p-2 md:p-4 flex flex-col min-h-0 overflow-hidden">
         {selectedService ? (
           <div className="flex-1 w-full flex flex-col min-h-0">

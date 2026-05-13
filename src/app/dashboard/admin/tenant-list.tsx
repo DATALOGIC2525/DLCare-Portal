@@ -53,7 +53,6 @@ const SECTIONS: { key: Section; label: string; icon: React.ComponentType<{ class
   { key: 'info',      label: '基本・連携情報', icon: Edit },
   { key: 'softwares', label: '所有システム',  icon: Monitor },
   { key: 'users',     label: '担当者管理',   icon: Users },
-  { key: 'limit',     label: '利用上限',     icon: Settings },
   { key: 'creds',     label: '認証情報',     icon: Lock },
   { key: 'services',  label: 'サービス設定', icon: LayoutGrid },
   { key: 'downloads', label: 'DLアクセス権', icon: Download },
@@ -163,18 +162,6 @@ function InfoPanel({ tenant }: { tenant: Tenant }) {
   );
 }
 
-function LimitPanel({ tenant }: { tenant: Tenant }) {
-  return (
-    <form action={updateTenantLimit.bind(null, tenant.id)} className="space-y-4">
-      <div className="flex items-center gap-3 bg-blue-50 p-4 rounded-lg border border-blue-100">
-        <Label className="text-sm font-semibold text-slate-700">ユーザー上限</Label>
-        <Input type="number" name="userLimit" defaultValue={tenant.userLimit} className="w-24 h-9 bg-white" min={1} />
-        <span className="text-xs text-slate-500">名</span>
-      </div>
-      <Button size="sm" type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9">更新</Button>
-    </form>
-  );
-}
 
 function CredsPanel({ tenant, services }: { tenant: Tenant; services: Service[] }) {
   const credMap = new Map(tenant.tenantCredentials.map(c => [c.service.name, c]));
@@ -297,7 +284,7 @@ function TenantRow({
           <div className="flex items-center gap-4 mt-1">
             {/* ユーザー数と認証情報のステータス */}
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Users className="h-3 w-3" /> {tenant.users.length} / {tenant.userLimit}名
+              <Users className="h-3 w-3" /> {tenant.users.length}名
             </span>
             <span className="text-xs text-slate-400 flex items-center gap-1">
               <Lock className="h-3 w-3" /> 認証 {settingsCount}/{CREDENTIAL_SERVICES.length}
@@ -357,7 +344,6 @@ function TenantRow({
             {openSection === 'info'      && <InfoPanel tenant={tenant} />}
             {openSection === 'softwares' && <TenantSoftwareTable tenantId={tenant.id} softwares={tenant.softwares} />}
             {openSection === 'users'     && <TenantUserTable tenantId={tenant.id} users={tenant.users} />}
-            {openSection === 'limit'     && <LimitPanel tenant={tenant} />}
             {openSection === 'creds'     && <CredsPanel tenant={tenant} services={services} />}
             {openSection === 'services'  && <ServicesPanel tenant={tenant} services={services} />}
             {openSection === 'downloads' && <DownloadsPanel tenant={tenant} allVariants={allVariants} />}

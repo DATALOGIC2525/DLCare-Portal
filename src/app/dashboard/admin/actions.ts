@@ -4,19 +4,6 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function updateTenantLimit(tenantId: string, formData: FormData) {
-  const session = await auth();
-  if (session?.user?.role !== 'SYSTEM_ADMIN') throw new Error('Unauthorized');
-
-  const userLimit = parseInt(formData.get('userLimit') as string);
-  
-  await prisma.tenant.update({
-    where: { id: tenantId },
-    data: { userLimit }
-  });
-  
-  revalidatePath('/dashboard/admin');
-}
 
 export async function toggleTenantStatus(tenantId: string, isActive: boolean) {
   const session = await auth();
@@ -80,20 +67,17 @@ export async function createTenant(formData: FormData) {
   if (session?.user?.role !== 'SYSTEM_ADMIN') throw new Error('Unauthorized');
 
   const tenantName = formData.get('tenantName') as string;
-  const userLimit = parseInt(formData.get('userLimit') as string) || 10;
-  
+  if (!tenantName) throw new Error('ユーザー（企業）名は必須です');
+
   // 保守・基本情報
   const maintenanceId = (formData.get('maintenanceId') as string) || null;
   const startMonth = (formData.get('startMonth') as string) || null;
   const startYear = (formData.get('startYear') as string) || null;
   const paymentMethod = (formData.get('paymentMethod') as string) || null;
   const remarks = (formData.get('remarks') as string) || null;
-  
   const address = (formData.get('address') as string) || null;
   const phoneNumber = (formData.get('phoneNumber') as string) || null;
   const contactEmail = (formData.get('contactEmail') as string) || null;
-
-  if (!tenantName) throw new Error('ユーザー（企業）名は必須です');
 
   // 企業の重複チェック
   const existingTenant = await prisma.tenant.findFirst({
@@ -114,7 +98,6 @@ export async function createTenant(formData: FormData) {
     const tenant = await tx.tenant.create({
       data: { 
         name: tenantName, 
-        userLimit, 
         maintenanceId, 
         startMonth, 
         startYear, 

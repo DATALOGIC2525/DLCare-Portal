@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import * as Icons from 'lucide-react';
 import { 
   ChevronRight, 
   ChevronLeft,
-  ChevronRight as ChevronRightIcon,
   LayoutDashboard, 
   User, 
   Bell, 
@@ -15,9 +15,21 @@ import {
   LayoutGrid, 
   Megaphone, 
   LogOut,
-  Menu
+  Menu,
+  Star,
+  StarOff,
+  HelpCircle
 } from 'lucide-react';
 import { NavItem } from './nav-item';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { cn } from '@/lib/utils';
+
+interface Service {
+  id: string;
+  name: string;
+  iconName: string | null;
+  groupLabel: string | null;
+}
 
 interface DashboardSidebarProps {
   user: {
@@ -25,10 +37,9 @@ interface DashboardSidebarProps {
     avatarUrl?: string | null;
     tenant: {
       name: string;
-      userLimit: number;
     };
   };
-  activeUsersCount: number;
+  services: Service[];
   unreadAnnouncementsCount: number;
   isAdmin: boolean;
   isTenantAdmin: boolean;
@@ -37,16 +48,33 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({
   user,
-  activeUsersCount,
+  services,
   unreadAnnouncementsCount,
   isAdmin,
   isTenantAdmin,
   signOutAction
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentServiceId = searchParams.get('service');
+  
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+  // 選択されたサービスのグループを自動展開
+  useEffect(() => {
+    if (currentServiceId) {
+      const selectedService = services.find(s => s.id === currentServiceId);
+      if (selectedService) {
+        const group = selectedService.groupLabel || 'その他';
+        setOpenGroups(prev => prev.includes(group) ? prev : [...prev, group]);
+      }
+    }
+  }, [currentServiceId, services]);
 
   // 初回レンダリング時にlocalStorageから状態を復元
   useEffect(() => {
@@ -54,6 +82,12 @@ export function DashboardSidebar({
     if (saved !== null) {
       setIsCollapsed(saved === 'true');
     }
+    
+    const savedFavs = localStorage.getItem('dlcare-favorites');
+    if (savedFavs) {
+      setFavorites(JSON.parse(savedFavs));
+    }
+    
     setIsMounted(true);
   }, []);
 
@@ -64,6 +98,16 @@ export function DashboardSidebar({
     localStorage.setItem('sidebar-collapsed', String(newState));
   };
 
+  const toggleFavorite = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newFavs = favorites.includes(id) 
+      ? favorites.filter(f => f !== id)
+      : [...favorites, id];
+    setFavorites(newFavs);
+    localStorage.setItem('dlcare-favorites', JSON.stringify(newFavs));
+  };
+
   const toggleMobileSidebar = () => {
     setIsMobileOpen(!isMobileOpen);
   };
@@ -72,9 +116,54 @@ export function DashboardSidebar({
     return <aside className="hidden md:flex w-60 shrink-0 flex-col h-full shadow-xl z-20 bg-slate-900" />;
   }
 
+  // サービスをグループ化
+  const favoriteServices = services.filter(s => favorites.includes(s.id));
+  const groupMap = new Map<string, Service[]>();
+  for (const svc of services) {
+    const label = svc.groupLabel || 'その他';
+    if (!groupMap.has(label)) groupMap.set(label, []);
+    groupMap.get(label)!.push(svc);
+  }
+  const groups = Array.from(groupMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+  const renderServiceItem = (svc: Service) => {
+    const Icon = (Icons as any)[svc.iconName || 'HelpCircle'] || HelpCircle;
+    const isSelected = currentServiceId === svc.id;
+    const isFav = favorites.includes(svc.id);
+
+    return (
+      <Link
+        key={svc.id}
+        href={`/dashboard?service=${svc.id}`}
+        onClick={() => isMobileOpen && setIsMobileOpen(false)}
+        className={cn(
+          "group flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold transition-all relative",
+          isSelected 
+            ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" 
+            : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+        )}
+      >
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400")} />
+        <span className={cn("truncate", isCollapsed && "md:hidden")}>{svc.name}</span>
+        
+        {!isCollapsed && (
+          <button
+            onClick={(e) => toggleFavorite(e, svc.id)}
+            className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Star className={cn("h-3 w-3", isFav ? "fill-yellow-500 text-yellow-500" : "text-slate-600")} />
+          </button>
+        )}
+        
+        {isSelected && !isCollapsed && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-cyan-500 rounded-l-full" />
+        )}
+      </Link>
+    );
+  };
+
   return (
     <>
-      {/* ── モバイル用ハンバーガーボタン（ヘッダー外） ── */}
       <button 
         onClick={toggleMobileSidebar}
         className="md:hidden fixed top-3 left-4 z-[60] p-2 bg-slate-900 text-white rounded-lg shadow-lg"
@@ -82,7 +171,6 @@ export function DashboardSidebar({
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* ── モバイル用オーバーレイ ── */}
       {isMobileOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] animate-in fade-in duration-300"
@@ -91,156 +179,152 @@ export function DashboardSidebar({
       )}
 
       <aside 
-        className={`
-          fixed md:relative inset-y-0 left-0 z-[55] md:z-20
-          ${isCollapsed ? 'md:w-20' : 'md:w-60'} 
-          ${isMobileOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0'}
-          shrink-0 flex flex-col h-full shadow-2xl md:shadow-xl transition-all duration-300 ease-in-out overflow-hidden
-        `} 
-        style={{ background: '#1E293B' }}
+        className={cn(
+          "fixed md:relative inset-y-0 left-0 z-[55] md:z-20 transition-all duration-300 ease-in-out flex flex-col h-full shadow-2xl md:shadow-xl overflow-hidden",
+          isCollapsed ? "md:w-20" : "md:w-64",
+          isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0"
+        )}
+        style={{ background: '#111827' }}
       >
-        {/* ロゴ & トグルボタン */}
-        <div className={`py-4 border-b border-slate-700 flex items-center overflow-hidden ${isCollapsed ? 'md:flex-col gap-3 md:justify-center px-4 md:px-2' : 'px-4 justify-between'}`}>
-          <Link href="/dashboard" className={`flex items-center group min-w-0 ${isCollapsed ? 'md:justify-center' : 'gap-2'}`}>
-            <img src="/logo.png" alt="DL Care Logo" width="32" height="32" className="shrink-0 transition-transform group-hover:scale-110 object-contain" />
-            <div className={`animate-in fade-in slide-in-from-left-2 duration-300 overflow-hidden ${isCollapsed ? 'md:hidden' : 'block'}`}>
-              <div className="text-white font-black text-base tracking-wide leading-tight truncate">DL Care</div>
-              <div className="text-slate-400 text-[9px] leading-tight tracking-widest uppercase truncate">Portal</div>
+        {/* ロゴ */}
+        <div className={cn("py-5 border-b border-slate-800/50 flex items-center px-4 justify-between", isCollapsed && "md:px-0 md:justify-center")}>
+          <Link href="/dashboard" className={cn("flex items-center gap-2.5 group", isCollapsed && "md:gap-0")}>
+            <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
+              <Icons.Shield className="h-5 w-5 text-white" />
             </div>
-          </Link>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={toggleSidebar}
-              className={`hidden md:flex p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors shrink-0 ${isCollapsed ? '' : 'ml-auto'}`}
-              title={isCollapsed ? "メニューを展開" : "メニューを閉じる"}
-            >
-              {isCollapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-            <button 
-              onClick={toggleMobileSidebar}
-              className="md:hidden p-1.5 rounded-lg hover:bg-slate-700/50 text-slate-400"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* ユーザー情報 */}
-        <div className={`py-3 border-b border-slate-700/60 flex flex-col items-center ${isCollapsed ? 'md:px-2' : 'px-4'}`}>
-          <div className={`flex items-center gap-2 min-w-0 ${isCollapsed ? 'md:justify-center m-0' : 'mb-1 w-full'}`}>
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.contactName} className="w-7 h-7 rounded-full object-cover shrink-0 shadow-inner border border-slate-700" />
-            ) : (
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-inner"
-                style={{ background: 'linear-gradient(135deg, #0BBFDF, #E4197A)' }}
-              >
-                {user.contactName.charAt(0)}
+            {!isCollapsed && (
+              <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                <div className="text-white font-black text-sm tracking-tight">DLCare Portal</div>
+                <div className="text-slate-500 text-[8px] uppercase tracking-[0.2em] font-bold">Maintenance Center</div>
               </div>
             )}
-            <div className={`min-w-0 animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
-              <div className="text-white text-xs font-semibold truncate">{user.tenant.name}</div>
-              <div className="text-slate-400 text-[10px] truncate">{user.contactName}</div>
-            </div>
-          </div>
-          <div className={`mt-2 flex flex-wrap gap-1 animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'flex'}`}>
-            {isAdmin && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                ADMIN
-              </span>
-            )}
-            {isTenantAdmin && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-pink-500/20 text-pink-400 border border-pink-500/30">
-                USER ADMIN
-              </span>
-            )}
-          </div>
+          </Link>
+          {!isCollapsed && (
+            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-white transition-colors">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          {isCollapsed && (
+             <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-white mt-1">
+               <Menu className="h-4 w-4" />
+             </button>
+          )}
         </div>
 
-        {/* ナビゲーション */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-          {/* ユーザー管理者向け状況サマリー */}
-          {isTenantAdmin && (
-            <div className={`mb-6 px-2 animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
-              <div className="text-slate-500 text-[9px] uppercase tracking-widest mb-2 font-bold">利用状況</div>
-              <Link href="/dashboard/tenant-users" className="block group">
-                <div className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-2.5 transition-all hover:bg-slate-800 hover:border-slate-600 active:scale-[0.98]">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] text-slate-400 font-medium">ユーザー数</span>
-                    <span className="text-[11px] font-bold text-white">{activeUsersCount} / {user.tenant.userLimit}</span>
-                  </div>
-                  <div className="w-full h-1 bg-slate-700/50 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-700 ${(activeUsersCount / user.tenant.userLimit) > 0.9 ? 'bg-red-500' : 'bg-cyan-400'}`} 
-                      style={{ width: `${Math.min(100, (activeUsersCount / user.tenant.userLimit) * 100)}%` }} 
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[9px] text-slate-500 font-medium group-hover:text-slate-300">
-                    <span>管理画面へ</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </div>
-                </div>
-              </Link>
+        {/* スクロールエリア */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-6">
+          
+          {/* 基本メニュー */}
+          <div className="space-y-1">
+            <div className={cn("text-slate-600 text-[9px] uppercase tracking-widest px-2 mb-2 font-black", isCollapsed && "md:hidden")}>
+              Portal Home
             </div>
-          )}
-
-          <div className={`text-slate-500 text-[9px] uppercase tracking-widest px-2 mb-2 font-bold ${isCollapsed ? 'md:text-center' : ''}`}>
-            {(isCollapsed) ? '...' : 'メニュー'}
+            <NavItem 
+              href="/dashboard" 
+              iconName="LayoutDashboard" 
+              label="TOP" 
+              isCollapsed={isCollapsed} 
+              forceInactive={!!currentServiceId}
+            />
+            <NavItem href="/dashboard/mypage" iconName="User" label="マイページ" isCollapsed={isCollapsed} />
+            <NavItem href="/dashboard/announcements" iconName="Bell" label="お知らせ" isCollapsed={isCollapsed} />
           </div>
 
-          <NavItem href="/dashboard" iconName="LayoutDashboard" label="ダッシュボード" isCollapsed={isCollapsed} />
-          <NavItem href="/dashboard/mypage" iconName="User" label="マイページ" isCollapsed={isCollapsed} />
-          
-          <Link href="/dashboard/announcements"
-            title={(isCollapsed) ? "お知らせ" : undefined}
-            className={`flex items-center relative ${(isCollapsed) ? 'md:justify-center px-3 md:px-0' : 'justify-between px-3'} py-2 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] group ${
-              pathname.startsWith('/dashboard/announcements')
-                ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
-                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-            }`}
-          >
-            <div className={`flex items-center ${(isCollapsed) ? 'md:justify-center' : 'gap-2.5'}`}>
-              <Bell className={`h-4 w-4 shrink-0 transition-colors ${
-                pathname.startsWith('/dashboard/announcements') ? 'text-cyan-400' : 'text-slate-500 group-hover:text-cyan-400'
-              }`} />
-              <span className={`animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>お知らせ</span>
+          {/* お気に入りサービス */}
+          {favoriteServices.length > 0 && (
+            <div className="space-y-1">
+              <div className={cn("text-yellow-500/60 text-[9px] uppercase tracking-widest px-2 mb-2 font-black flex items-center gap-1.5", isCollapsed && "md:justify-center px-0")}>
+                <Star className="h-3 w-3 fill-yellow-500/20" />
+                {!isCollapsed && "Favorites"}
+              </div>
+              <div className="space-y-0.5">
+                {favoriteServices.map(renderServiceItem)}
+              </div>
             </div>
-            {unreadAnnouncementsCount > 0 && (
-              <span className={`flex items-center justify-center bg-red-500 text-white font-bold h-4 rounded-full shadow-sm animate-pulse ${
-                isCollapsed ? 'md:absolute md:top-1 md:right-2 h-4 w-4 md:h-2 md:w-2 min-w-0 px-1 md:px-0' : 'text-[10px] min-w-[16px] px-1'
-              }`}>
-                {(!isCollapsed || !isMounted) && (unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount)}
-              </span>
+          )}
+
+          {/* 全サービス (アコーディオン) */}
+          <div className="space-y-1">
+            <div className={cn("text-slate-600 text-[9px] uppercase tracking-widest px-2 mb-2 font-black flex items-center gap-1.5", isCollapsed && "md:justify-center px-0")}>
+              <LayoutGrid className="h-3 w-3" />
+              {!isCollapsed && "Services"}
+            </div>
+            
+            {isCollapsed ? (
+              <div className="flex flex-col items-center gap-3 pt-2">
+                {services.map(svc => {
+                   const Icon = (Icons as any)[svc.iconName || 'HelpCircle'] || HelpCircle;
+                   return (
+                     <Link key={svc.id} href={`/dashboard?service=${svc.id}`} title={svc.name} className={cn("p-2 rounded-lg transition-colors", currentServiceId === svc.id ? "bg-cyan-500/20 text-cyan-400" : "text-slate-500 hover:text-white hover:bg-slate-800")}>
+                        <Icon className="h-5 w-5" />
+                     </Link>
+                   );
+                })}
+              </div>
+            ) : (
+              <Accordion 
+                type="multiple" 
+                className="w-full space-y-1"
+                value={openGroups}
+                onValueChange={setOpenGroups}
+              >
+                {groups.map(([label, svcs]) => (
+                  <AccordionItem key={label} value={label} className="border-none">
+                    <AccordionTrigger className="py-2 hover:bg-slate-800/50 rounded-lg px-2 no-underline">
+                      <span className="text-[11px] font-black text-slate-400">{label}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-1 px-1 pb-2 space-y-0.5">
+                      {svcs.map(renderServiceItem)}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             )}
-          </Link>
+          </div>
 
-          {isTenantAdmin && (
-            <NavItem href="/dashboard/tenant-users" iconName="Users" label="ユーザー管理" isCollapsed={isCollapsed} />
-          )}
-
-          {isAdmin && (
-            <div className="pt-2 space-y-1">
-              <div className={`text-slate-500 text-[9px] uppercase tracking-widest px-2 mb-2 font-bold animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>システム管理</div>
-              <NavItem href="/dashboard/admin/users" iconName="Users" label="登録ユーザーリスト" isCollapsed={isCollapsed} />
-              <NavItem href="/dashboard/admin" iconName="Settings" label="マスター管理" isCollapsed={isCollapsed} />
-              <NavItem href="/dashboard/admin/services" iconName="LayoutGrid" label="サービス管理" isCollapsed={isCollapsed} />
-              <NavItem href="/dashboard/admin/announcements" iconName="Megaphone" label="お知らせ管理" isCollapsed={isCollapsed} />
+          {/* 管理メニュー */}
+          {(isAdmin || isTenantAdmin) && (
+            <div className="space-y-1 pt-4 border-t border-slate-800/50">
+              <div className={cn("text-slate-600 text-[9px] uppercase tracking-widest px-2 mb-2 font-black", isCollapsed && "md:hidden")}>
+                Administration
+              </div>
+              {isTenantAdmin && (
+                <NavItem href="/dashboard/tenant-users" iconName="Users" label="ユーザー管理" isCollapsed={isCollapsed} />
+              )}
+              {isAdmin && (
+                <>
+                  <NavItem href="/dashboard/admin" iconName="Settings" label="マスター管理" isCollapsed={isCollapsed} />
+                  <NavItem href="/dashboard/admin/services" iconName="LayoutGrid" label="サービス管理" isCollapsed={isCollapsed} />
+                </>
+              )}
             </div>
           )}
-        </nav>
+        </div>
 
-        {/* ログアウト */}
-        <div className="px-3 py-3 border-t border-slate-700/60 bg-slate-900/20">
-          <form action={async () => {
-            await signOutAction();
-          }}>
-            <button type="submit"
-              title={isCollapsed ? "ログアウト" : undefined}
-              className={`w-full flex items-center ${isCollapsed ? 'md:justify-center px-2 md:px-0' : 'gap-2.5 px-2'} py-2 rounded-lg text-xs text-slate-400 font-medium hover:bg-red-500/10 hover:text-red-400 transition-all active:scale-95 group`}>
-              <LogOut className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-1" />
-              <span className={`animate-in fade-in duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>ログアウト</span>
-            </button>
-          </form>
+        {/* ユーザーフッター */}
+        <div className="p-4 border-t border-slate-800/50 bg-black/20">
+          <div className={cn("flex items-center gap-3", isCollapsed && "md:justify-center md:gap-0")}>
+            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <span className="text-xs font-black text-white">{user.contactName.charAt(0)}</span>
+              )}
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black text-white truncate">{user.contactName}</div>
+                <div className="text-[9px] font-bold text-slate-500 truncate uppercase tracking-tighter">{user.tenant.name}</div>
+              </div>
+            )}
+            {!isCollapsed && (
+              <form action={signOutAction}>
+                <button type="submit" className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors">
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </aside>
     </>

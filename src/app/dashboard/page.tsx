@@ -1,23 +1,28 @@
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { RibbonDashboard } from '@/components/ribbon-dashboard';
+import { ServiceGrid } from '@/components/service-grid';
 import { signOut } from '@/auth';
 
 const SERVICE_ACCENTS: Record<string, string> = {
-  'DLCare詳細':               '#0BBFDF',
-  '最新アップデート':           '#0891B2',
-  '専用フリーダイヤル':         '#0EA5E9',
-  'く～chat':                  '#E4197A',
-  'S/F com-pass 3DView':      '#7C3AED',
-  'オンラインセミナー':          '#EA580C',
-  'データロジックダイレクト':   '#2563EB',
-  'カスタム研修':               '#D97706',
-  'スタートサポート':           '#059669',
-  'ソフトウェアライセンス交換': '#65A30D',
-  '入力代行':                   '#DB2777',
+  '最新版アップデート':           '#0BBFDF',
+  '専用フリーダイヤル':         '#0BBFDF',
+  'く～chat':                  '#0BBFDF',
+  'com-pass 3DView':         '#0BBFDF',
+  'DATALOGICDIRECT':          '#0BBFDF',
+  'スタートサポート':           '#0BBFDF',
+  'ソフトウェアライセンス交換': '#0BBFDF',
+  'オンラインセミナー':          '#0BBFDF',
+  'カスタム研修':               '#0BBFDF',
+  '入力代行':                   '#0BBFDF',
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>;
+}) {
+  const { service } = await searchParams;
   const session = await auth();
   if (!session?.user) return null;
 
@@ -26,9 +31,7 @@ export default async function DashboardPage() {
     select: { id: true, tenantId: true, role: true }
   });
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   // テナントがアクセス可能なサービスIDを取得
   const tenantServiceAccesses = await prisma.tenantServiceAccess.findMany({
@@ -39,7 +42,7 @@ export default async function DashboardPage() {
 
   let services = await prisma.service.findMany({
     where: { isActive: true },
-    orderBy: [{ groupLabel: 'asc' }, { sortOrder: 'asc' }],
+    orderBy: [{ sortOrder: 'asc' }], // 番号順に並べるため
     include: { variants: { orderBy: { sortOrder: 'asc' } } }
   });
 
@@ -48,14 +51,13 @@ export default async function DashboardPage() {
     services = services.filter(svc => allowedServiceIds.has(svc.id));
   }
 
-  // このテナントがアクセス可能なバリアントIDのセットを取得
+  // serviceId → 許可済みバリアント のマップ
   const tenantVariantAccesses = await prisma.tenantVariantAccess.findMany({
     where: { tenantId: user.tenantId },
     select: { variantId: true }
   });
   const allowedVariantIds = new Set(tenantVariantAccesses.map(a => a.variantId));
 
-  // serviceId → 許可済みバリアント のマップ
   const variantMap: Record<string, { id: string; label: string; url: string }[]> = {};
   for (const svc of services) {
     variantMap[svc.id] = svc.variants.filter(v => allowedVariantIds.has(v.id));
@@ -79,15 +81,21 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F0F0F0] min-h-0">
-      {/* ── メインコンテンツ（リボンUI） ── */}
-      <RibbonDashboard
-        services={services}
-        credMap={credMap}
-        accents={SERVICE_ACCENTS}
-        variantMap={variantMap}
-        userRole={user.role}
-      />
+    <div className="flex-1 flex flex-col bg-white min-h-0">
+      {service ? (
+        /* 詳細表示 */
+        <RibbonDashboard
+          services={services}
+          selectedId={service}
+          credMap={credMap}
+          accents={SERVICE_ACCENTS}
+          variantMap={variantMap}
+          userRole={user.role}
+        />
+      ) : (
+        /* TOPページ (グリッド表示) */
+        <ServiceGrid services={services} accents={SERVICE_ACCENTS} />
+      )}
     </div>
   );
 }

@@ -29,10 +29,7 @@ export default async function DashboardLayout({
   }
 
   // 統計情報を並列で取得
-  const [activeUsersCount, unreadAnnouncementsCount] = await Promise.all([
-    prisma.user.count({
-      where: { tenantId: user.tenantId, isActive: true }
-    }),
+  const [unreadAnnouncementsCount] = await Promise.all([
     prisma.announcement.count({
       where: {
         isActive: true,
@@ -48,6 +45,23 @@ export default async function DashboardLayout({
       }
     })
   ]);
+
+  // テナントがアクセス可能なサービスIDを取得
+  const tenantServiceAccesses = await prisma.tenantServiceAccess.findMany({
+    where: { tenantId: user.tenantId },
+    select: { serviceId: true }
+  });
+  const allowedServiceIds = new Set(tenantServiceAccesses.map(a => a.serviceId));
+
+  let services = await prisma.service.findMany({
+    where: { isActive: true },
+    orderBy: [{ groupLabel: 'asc' }, { sortOrder: 'asc' }],
+  });
+
+  // システム管理者以外はフィルタリング
+  if (user.role !== 'SYSTEM_ADMIN' && tenantServiceAccesses.length > 0) {
+    services = services.filter(svc => allowedServiceIds.has(svc.id));
+  }
 
   const isAdmin = user.role === 'SYSTEM_ADMIN';
   const isTenantAdmin = user.role === 'TENANT_ADMIN';
@@ -65,11 +79,10 @@ export default async function DashboardLayout({
           contactName: user.contactName,
           avatarUrl: user.avatarUrl,
           tenant: {
-            name: user.tenant.name,
-            userLimit: user.tenant.userLimit
+            name: user.tenant.name
           }
         }}
-        activeUsersCount={activeUsersCount}
+        services={services}
         unreadAnnouncementsCount={unreadAnnouncementsCount}
         isAdmin={isAdmin}
         isTenantAdmin={isTenantAdmin}

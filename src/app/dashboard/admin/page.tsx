@@ -103,17 +103,11 @@ export default async function AdminDashboard(props: { searchParams?: Promise<{ p
                     <Input id="contactEmail" name="contactEmail" type="email" placeholder="contact@example.com" className="h-9 pl-10 bg-white" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber" className="text-xs font-bold text-slate-700">代表電話番号</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input id="phoneNumber" name="phoneNumber" placeholder="03-1234-5678" className="h-9 pl-10 bg-white" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="userLimit" className="text-xs font-bold text-slate-700">利用可能ユーザー数</Label>
-                    <Input id="userLimit" name="userLimit" type="number" defaultValue="10" className="h-9 bg-white" />
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-xs font-bold text-slate-700">代表電話番号</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input id="phoneNumber" name="phoneNumber" placeholder="03-1234-5678" className="h-9 pl-10 bg-white" />
                   </div>
                 </div>
               </div>

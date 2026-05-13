@@ -26,9 +26,7 @@ export default async function TenantUsersPage() {
 
   if (!tenant) return null;
 
-  const activeUsers = tenant.users.filter(u => u.isActive);
-  const canCreate = activeUsers.length < tenant.userLimit;
-  const usagePercent = Math.min(100, (activeUsers.length / tenant.userLimit) * 100);
+  if (!tenant) return null;
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-8">
@@ -39,84 +37,13 @@ export default async function TenantUsersPage() {
         </div>
       </div>
 
-      {/* ── 利用状況サマリ ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="shadow-sm border-slate-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-blue-50 p-2.5 rounded-xl">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-              <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50/30">利用中</Badge>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-slate-900">{activeUsers.length} <span className="text-sm font-normal text-slate-400">/ {tenant.userLimit} 名</span></div>
-              <div className="text-sm text-slate-500">現在の有効なユーザー数</div>
-            </div>
-            <div className="mt-4 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-500 ${usagePercent > 90 ? 'bg-red-500' : 'bg-blue-500'}`} 
-                style={{ width: `${usagePercent}%` }} 
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-emerald-50 p-2.5 rounded-xl">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
-              </div>
-              <Badge variant="outline" className="text-emerald-600 border-emerald-100 bg-emerald-50/30">契約上限</Badge>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-slate-900">{tenant.userLimit} <span className="text-sm font-normal text-slate-400">名</span></div>
-              <div className="text-sm text-slate-500">ご契約のユーザー上限数</div>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-4 italic">※上限変更は管理者にお問い合わせください</p>
-          </CardContent>
-        </Card>
-
-        <Card className={`shadow-sm border-slate-200 ${!canCreate ? 'bg-red-50/30 border-red-100' : ''}`}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-2.5 rounded-xl ${!canCreate ? 'bg-red-100' : 'bg-indigo-50'}`}>
-                <UserPlus className={`h-5 w-5 ${!canCreate ? 'text-red-600' : 'text-indigo-600'}`} />
-              </div>
-              <Badge variant="outline" className={`${!canCreate ? 'text-red-600 border-red-200' : 'text-indigo-600 border-indigo-100'}`}>
-                作成可能
-              </Badge>
-            </div>
-            <div className="space-y-1">
-              <div className={`text-3xl font-bold ${!canCreate ? 'text-red-600' : 'text-slate-900'}`}>
-                {Math.max(0, tenant.userLimit - activeUsers.length)} <span className="text-sm font-normal text-slate-400">名</span>
-              </div>
-              <div className="text-sm text-slate-500">あと何名作成できるか</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ── 担当者アカウント作成フォーム ── */}
         <div className="lg:col-span-5 space-y-6">
           <Card className="shadow-md border-blue-100 bg-white relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-blue-500" />
             <CardContent>
-              {canCreate ? (
-                <UserCreateForm />
-              ) : (
-                <div className="p-6 bg-red-50 rounded-xl border border-red-100 text-center space-y-3">
-                  <div className="mx-auto w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <UserX className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div className="text-sm font-bold text-red-900">作成上限に達しました</div>
-                  <p className="text-xs text-red-700 leading-relaxed">
-                    ユーザー上限を増やすには、システム管理者へお問い合わせください。
-                  </p>
-                </div>
-              )}
+              <UserCreateForm />
             </CardContent>
           </Card>
         </div>
