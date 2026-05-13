@@ -1,0 +1,38 @@
+"use client"
+
+import * as React from "react"
+import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group"
+
+import { cn } from "@/lib/utils"
+
+function RadioGroup({
+  className,
+  ...props
+}: RadioGroupPrimitive.Root.Props) {
+  return (
+    <RadioGroupPrimitive.Root
+      className={cn("grid gap-3", className)}
+      {...props}
+    />
+  )
+}
+
+function RadioGroupItem({
+  className,
+  ...props
+}: RadioGroupPrimitive.Item.Props) {
+  return (
+    <RadioGroupPrimitive.Item
+      data-slot="radio-group-item"
+      className={cn(
+        "peer group/radio flex size-5 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:border-blue-600",
+        className
+      )}
+      {...props}
+    >
+      <RadioGroupPrimitive.Indicator className="size-2.5 rounded-full bg-blue-600" />
+    </RadioGroupPrimitive.Item>
+  )
+}
+
+export { RadioGroup, RadioGroupItem }
