@@ -31,25 +31,27 @@ export default function RegisterPage() {
     email: '',
     password: '',
     department: '',
-    // サービス申請関連
-    requestEc: false,
+    // ECサイト申請
     ecRepName: '',
-    ecRepNameKana: '',
     ecRepEmail: '',
-    requestKuchat: false,
+    ecPassword: '',
+    // く～chat申請
     kuchatRepName: '',
-    kuchatRepNameKana: '',
     kuchatRepEmail: '',
     kuchatPassword: '',
-    requestSeminar: false,
+    // オンラインセミナー申請
+    seminarRepName: '',
+    seminarRepEmail: '',
+    seminarPassword: '',
+    // その他
     invoiceEmail: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -81,7 +83,7 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       setError(err.message);
-      setStep(1); // 最初に戻るか、エラー箇所に誘導
+      setStep(1); 
     } finally {
       setLoading(false);
     }
@@ -152,12 +154,12 @@ export default function RegisterPage() {
                         placeholder="株式会社データロジック" 
                         className="h-11 bg-slate-50/50 border-slate-200 focus:ring-blue-500 font-bold" 
                       />
-                      <p className="text-[10px] text-slate-400 font-medium italic">※「株式会社」や「㈱」を含めて入力してください。照合に使用します。</p>
+                      <p className="text-[10px] text-slate-400 font-medium italic">※「株式会社」や「㈱」を含めて入力してください。</p>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="address" className="text-xs font-black text-slate-600 uppercase tracking-widest">
-                        ご住所（本社所在地） <span className="text-red-500">*</span>
+                        ご住所 <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
@@ -281,58 +283,54 @@ export default function RegisterPage() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <div className="space-y-6">
+                  <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="flex items-center gap-2 text-slate-800 font-bold border-b border-slate-100 pb-2">
                       <ShoppingCart className="h-4 w-4 text-emerald-500" />
-                      各種サービス利用申請
+                      各種サービス利用申請（すべて必須）
                     </div>
 
                     {/* EC Site */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id="requestEc" 
-                          checked={formData.requestEc}
-                          onCheckedChange={(checked) => setFormData(p => ({ ...p, requestEc: !!checked }))}
-                        />
-                        <Label htmlFor="requestEc" className="font-bold text-slate-700">ECサイト（データロジックダイレクト）を利用する</Label>
+                    <div className="p-4 rounded-2xl bg-emerald-50/30 border border-emerald-100 space-y-4">
+                      <h4 className="font-black text-emerald-800 text-sm flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4" /> ECサイト
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input name="ecRepName" required placeholder="担当者氏名" value={formData.ecRepName} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="ecRepEmail" type="email" required placeholder="メールアドレス" value={formData.ecRepEmail} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="ecPassword" type="password" required placeholder="専用パスワード" value={formData.ecPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
                       </div>
-                      {formData.requestEc && (
-                        <div className="pl-7 space-y-3 animate-in fade-in slide-in-from-top-2">
-                          <Input name="ecRepName" placeholder="EC担当者氏名" value={formData.ecRepName} onChange={handleChange} className="h-9 text-sm" />
-                          <Input name="ecRepEmail" placeholder="EC担当者メールアドレス" value={formData.ecRepEmail} onChange={handleChange} className="h-9 text-sm" />
-                        </div>
-                      )}
                     </div>
 
                     {/* Ku~chat */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id="requestKuchat" 
-                          checked={formData.requestKuchat}
-                          onCheckedChange={(checked) => setFormData(p => ({ ...p, requestKuchat: !!checked }))}
-                        />
-                        <Label htmlFor="requestKuchat" className="font-bold text-slate-700">く～chatを利用する</Label>
+                    <div className="p-4 rounded-2xl bg-blue-50/30 border border-blue-100 space-y-4">
+                      <h4 className="font-black text-blue-800 text-sm flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" /> く～chat
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input name="kuchatRepName" required placeholder="担当者氏名" value={formData.kuchatRepName} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="kuchatRepEmail" type="email" required placeholder="メールアドレス" value={formData.kuchatRepEmail} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="kuchatPassword" type="password" required placeholder="専用パスワード" value={formData.kuchatPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
                       </div>
-                      {formData.requestKuchat && (
-                        <div className="pl-7 space-y-3 animate-in fade-in slide-in-from-top-2">
-                          <Input name="kuchatRepName" placeholder="チャット担当者氏名" value={formData.kuchatRepName} onChange={handleChange} className="h-9 text-sm" />
-                          <Input name="kuchatPassword" type="password" placeholder="チャット専用パスワード" value={formData.kuchatPassword} onChange={handleChange} className="h-9 text-sm" />
-                        </div>
-                      )}
                     </div>
 
                     {/* Seminar */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id="requestSeminar" 
-                          checked={formData.requestSeminar}
-                          onCheckedChange={(checked) => setFormData(p => ({ ...p, requestSeminar: !!checked }))}
-                        />
-                        <Label htmlFor="requestSeminar" className="font-bold text-slate-700">オンラインセミナーを申し込む</Label>
+                    <div className="p-4 rounded-2xl bg-indigo-50/30 border border-indigo-100 space-y-4">
+                      <h4 className="font-black text-indigo-800 text-sm flex items-center gap-2">
+                        <MonitorPlay className="h-4 w-4" /> オンラインセミナー
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input name="seminarRepName" required placeholder="担当者氏名" value={formData.seminarRepName} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="seminarRepEmail" type="email" required placeholder="メールアドレス" value={formData.seminarRepEmail} onChange={handleChange} className="h-10 text-sm bg-white" />
+                        <Input name="seminarPassword" type="password" required placeholder="専用パスワード" value={formData.seminarPassword} onChange={handleChange} className="h-10 text-sm bg-white md:col-span-2" />
                       </div>
+                    </div>
+
+                    {/* Invoice Email */}
+                    <div className="space-y-2 px-1">
+                      <Label htmlFor="invoiceEmail" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        請求書送付用メールアドレス <span className="text-red-500">*</span>
+                      </Label>
+                      <Input id="invoiceEmail" name="invoiceEmail" type="email" required value={formData.invoiceEmail} onChange={handleChange} placeholder="billing@company.co.jp" className="h-10 bg-slate-50/50" />
                     </div>
                   </div>
                 </motion.div>
