@@ -16,6 +16,8 @@ model Tenant {
   startYear       String?            // 開始年
   paymentMethod   String?            // 支払方法
   remarks         String?            // 備考
+  address         String?            // 会社住所
+  phoneNumber     String?            // 代表電話番号
   isActive        Boolean            @default(true)
   users           User[]
   preIssuedIds    PreIssuedId[]
@@ -23,6 +25,7 @@ model Tenant {
   variantAccesses TenantVariantAccess[]
   serviceAccesses TenantServiceAccess[]
   softwares       TenantSoftware[]
+  announcements   Announcement[]     // お知らせとのリレーション
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -57,6 +60,7 @@ model User {
   avatarUrl        String?
   preIssuedId      String?          @unique
   passwordHash     String
+  registrationMetadata Json?        // 新規登録時の申請情報
   isActive         Boolean          @default(true)
   credentials      UserCredential[]
   auditLogs        AuditLog[]
@@ -169,6 +173,7 @@ model Announcement {
   type            String                 @default("INFO")
   targetRole      String?
   targetTenantId  String?
+  tenant          Tenant?                @relation(fields: [targetTenantId], references: [id])
   isActive        Boolean                @default(true)
   publishedAt     DateTime               @default(now())
   createdAt       DateTime               @default(now())

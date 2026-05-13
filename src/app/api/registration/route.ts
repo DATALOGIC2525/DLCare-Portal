@@ -1,76 +1,92 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { calculateMatchScore, MATCH_THRESHOLD } from '@/lib/tenant-matching';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { contactName, email, preIssuedId, password, department } = body;
+    const { 
+      companyName, address, phoneNumber, 
+      contactName, contactNameKana, email, password,
+      ...serviceMetadata 
+    } = body;
 
-    if (!contactName || !email || !preIssuedId || !password) {
+    // 必須チェック
+    if (!companyName || !address || !phoneNumber || !contactName || !email || !password) {
       return new Response(JSON.stringify({ error: '必須項目が不足しています' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // トランザクションで処理
-    const result = await prisma.$transaction(async (tx) => {
-      // 事前発行IDの検証
-      const issuedIdRecord = await tx.preIssuedId.findUnique({
-        where: { issuedId: preIssuedId },
-        include: { tenant: { include: { _count: { select: { users: true } } } } }
-      });
-
-      if (!issuedIdRecord) {
-        throw new Error('無効な発行済みIDです');
-      }
-
-      if (issuedIdRecord.isUsed) {
-        throw new Error('この発行済みIDは既に使用されています');
-      }
-
-      const tenant = issuedIdRecord.tenant;
-      if (tenant._count.users >= tenant.userLimit) {
-        throw new Error('テナントのユーザー上限数を超過しているため登録できません');
-      }
-
-      // メールアドレスの重複チェック
-      const existingUser = await tx.user.findUnique({ where: { email } });
-      if (existingUser) {
-        throw new Error('このメールアドレスは既に登録されています');
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-      
-      // 既存の管理者がいれば降格させる（管理者は常に1人）
-      await tx.user.updateMany({
-        where: { tenantId: tenant.id, role: 'TENANT_ADMIN' },
-        data: { role: 'GENERAL_USER' }
-      });
-
-      // ユーザー作成（テナント管理者として登録）
-      const newUser = await tx.user.create({
-        data: {
-          tenantId: tenant.id,
-          role: 'TENANT_ADMIN',
-          contactName,
-          email,
-          preIssuedId,
-          passwordHash,
-          department,
-        }
-      });
-
-      // IDを使用済みに更新
-      await tx.preIssuedId.update({
-        where: { id: issuedIdRecord.id },
-        data: { isUsed: true }
-      });
-
-      return newUser;
+    // 全テナントを取得してスコアリング（データ量が多い場合はフィルタリングが必要だが、一旦全取得）
+    const allTenants = await prisma.tenant.findMany({
+      include: { _count: { select: { users: true } } }
     });
 
-    return new Response(JSON.stringify({ success: true, user: { id: result.id, email: result.email } }), {
+    let bestMatch = null;
+    let highestScore = 0;
+
+    for (const tenant of allTenants) {
+      const score = calculateMatchScore(
+        { name: companyName, address, phoneNumber, email },
+        { 
+          name: tenant.name, 
+          address: tenant.address, 
+          phoneNumber: tenant.phoneNumber,
+          // 既存ユーザーのドメインを参考にする（簡易的）
+          domains: [] 
+        }
+      );
+
+      if (score >= MATCH_THRESHOLD && score > highestScore) {
+        highestScore = score;
+        bestMatch = tenant;
+      }
+    }
+
+    if (!bestMatch) {
+      return new Response(JSON.stringify({ 
+        error: '入力された情報に一致する会社が見つかりませんでした。入力内容をご確認いただくか、管理者へお問い合わせください。' 
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tenant = bestMatch;
+    if (tenant._count.users >= tenant.userLimit) {
+      return new Response(JSON.stringify({ error: 'テナントのユーザー上限数を超過しているため登録できません' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // メールアドレスの重複チェック
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return new Response(JSON.stringify({ error: 'このメールアドレスは既に登録されています' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    // トランザクションでユーザー作成
+    const newUser = await prisma.user.create({
+      data: {
+        tenantId: tenant.id,
+        role: 'GENERAL_USER', // 新規登録者は一般ユーザーとして作成
+        contactName,
+        email,
+        passwordHash,
+        registrationMetadata: serviceMetadata,
+        isActive: true,
+      }
+    });
+
+    return new Response(JSON.stringify({ success: true, user: { id: newUser.id, email: newUser.email } }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
