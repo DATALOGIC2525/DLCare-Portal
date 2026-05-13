@@ -21,7 +21,8 @@ export async function updateProfile(formData: FormData) {
 
   // ユーザー情報の取得
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id }
+    where: { id: session.user.id },
+    include: { tenant: true }
   });
 
   if (!user) throw new Error('ユーザーが見つかりません');
