@@ -34,6 +34,9 @@ interface Tenant {
   startYear: string | null;
   paymentMethod: string | null;
   remarks: string | null;
+  address: string | null;
+  phoneNumber: string | null;
+  registrationMetadata: any;
   users: { id: string; contactName: string; email: string; department: string | null; role: string; createdAt: Date }[];
   tenantCredentials: { service: { id: string; name: string }; loginId: string; password: string | null }[];
   serviceAccesses: { serviceId: string }[];
@@ -47,7 +50,7 @@ interface Variant { id: string; label: string; service: { name: string } }
 const CREDENTIAL_SERVICES = ['く～chat', 'データロジックダイレクト', 'オンラインセミナー'] as const;
 
 const SECTIONS: { key: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: 'info',      label: '基本情報',     icon: Edit },
+  { key: 'info',      label: '基本・連携情報', icon: Edit },
   { key: 'softwares', label: '所有システム',  icon: Monitor },
   { key: 'users',     label: '担当者管理',   icon: Users },
   { key: 'limit',     label: '利用上限',     icon: Settings },
@@ -60,35 +63,102 @@ const SECTIONS: { key: Section; label: string; icon: React.ComponentType<{ class
 // Individual section panels
 // ──────────────────────────────────────────────
 function InfoPanel({ tenant }: { tenant: Tenant }) {
+  const meta = (tenant.registrationMetadata as any) || {};
+
   return (
-    <form action={updateTenantInfo.bind(null, tenant.id)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 space-y-1">
-          <Label className="text-xs font-semibold text-slate-600">会社名 <span className="text-red-500">*</span></Label>
-          <Input name="name" defaultValue={tenant.name} required className="h-9 bg-white" />
+    <form action={updateTenantInfo.bind(null, tenant.id)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 左側：企業基本情報 */}
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-600">会社名 <span className="text-red-500">*</span></Label>
+            <Input name="name" defaultValue={tenant.name} required className="h-9 bg-white" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-600">会社住所</Label>
+            <Input name="address" defaultValue={tenant.address ?? ''} className="h-9 bg-white" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-600">代表電話番号</Label>
+              <Input name="phoneNumber" defaultValue={tenant.phoneNumber ?? ''} className="h-9 bg-white" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-600">連絡用メール</Label>
+              <Input name="contactEmail" defaultValue={meta.contactEmail ?? ''} className="h-9 bg-white" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">保守ID</Label>
+              <Input name="maintenanceId" defaultValue={tenant.maintenanceId ?? ''} className="h-8 bg-white text-xs" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">支払方法</Label>
+              <Input name="paymentMethod" defaultValue={tenant.paymentMethod ?? ''} className="h-8 bg-white text-xs" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">開始年度/月</Label>
+              <div className="flex gap-2">
+                <Input name="startYear" defaultValue={tenant.startYear ?? ''} className="h-8 bg-white text-xs w-2/3" placeholder="2025" />
+                <Input name="startMonth" defaultValue={tenant.startMonth ?? ''} className="h-8 bg-white text-xs w-1/3" placeholder="4" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-slate-500">備考</Label>
+            <Input name="remarks" defaultValue={tenant.remarks ?? ''} className="h-8 bg-white text-xs" />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-slate-500">保守ID</Label>
-          <Input name="maintenanceId" defaultValue={tenant.maintenanceId ?? ''} placeholder="RDD..." className="h-8 bg-white text-xs" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-slate-500">支払方法</Label>
-          <Input name="paymentMethod" defaultValue={tenant.paymentMethod ?? ''} placeholder="年払い" className="h-8 bg-white text-xs" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-slate-500">開始年</Label>
-          <Input name="startYear" defaultValue={tenant.startYear ?? ''} placeholder="2025" className="h-8 bg-white text-xs" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-slate-500">開始月</Label>
-          <Input name="startMonth" defaultValue={tenant.startMonth ?? ''} placeholder="4月" className="h-8 bg-white text-xs" />
-        </div>
-        <div className="col-span-2 space-y-1">
-          <Label className="text-xs text-slate-500">備考</Label>
-          <Input name="remarks" defaultValue={tenant.remarks ?? ''} placeholder="特記事項など" className="h-8 bg-white text-xs" />
+
+        {/* 右側：付帯サービス連携情報（ユーザー入力内容） */}
+        <div className="space-y-4 bg-slate-100/50 p-4 rounded-xl border border-slate-200">
+          <h5 className="text-[11px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-1 mb-2">付帯サービス連携情報</h5>
+          
+          <div className="space-y-4">
+            {/* EC */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-700"><ShoppingCart className="h-3 w-3" /> ECサイト</div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input name="ecRepName" defaultValue={meta.ecRepName ?? ''} placeholder="担当者名" className="h-7 text-[10px]" />
+                <Input name="ecRepEmail" defaultValue={meta.ecRepEmail ?? ''} placeholder="メール" className="h-7 text-[10px]" />
+              </div>
+              <Input name="ecPassword" defaultValue={meta.ecPassword ?? ''} placeholder="パスワード" type="password" className="h-7 text-[10px]" />
+            </div>
+
+            {/* Kuchat */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-blue-700"><MessageSquare className="h-3 w-3" /> く～chat</div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input name="kuchatRepName" defaultValue={meta.kuchatRepName ?? ''} placeholder="担当者名" className="h-7 text-[10px]" />
+                <Input name="kuchatRepEmail" defaultValue={meta.kuchatRepEmail ?? ''} placeholder="メール" className="h-7 text-[10px]" />
+              </div>
+              <Input name="kuchatPassword" defaultValue={meta.kuchatPassword ?? ''} placeholder="パスワード" type="password" className="h-7 text-[10px]" />
+            </div>
+
+            {/* Seminar */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-700"><MonitorPlay className="h-3 w-3" /> セミナー</div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input name="seminarRepName" defaultValue={meta.seminarRepName ?? ''} placeholder="担当者名" className="h-7 text-[10px]" />
+                <Input name="seminarRepEmail" defaultValue={meta.seminarRepEmail ?? ''} placeholder="メール" className="h-7 text-[10px]" />
+              </div>
+              <Input name="seminarPassword" defaultValue={meta.seminarPassword ?? ''} placeholder="パスワード" type="password" className="h-7 text-[10px]" />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-[10px] font-bold text-slate-500">請求先メール</Label>
+              <Input name="invoiceEmail" defaultValue={meta.invoiceEmail ?? ''} className="h-7 text-[10px]" />
+            </div>
+          </div>
         </div>
       </div>
-      <Button size="sm" type="submit" className="w-full bg-slate-800 hover:bg-slate-700 text-white h-9">情報を更新</Button>
+
+      <div className="flex justify-end pt-2">
+        <Button size="sm" type="submit" className="px-8 bg-slate-800 hover:bg-slate-700 text-white font-bold h-9 shadow-sm">
+          基本・連携情報を更新
+        </Button>
+      </div>
     </form>
   );
 }

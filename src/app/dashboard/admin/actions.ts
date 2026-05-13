@@ -88,34 +88,18 @@ export async function createTenant(formData: FormData) {
   const startYear = (formData.get('startYear') as string) || null;
   const paymentMethod = (formData.get('paymentMethod') as string) || null;
   const remarks = (formData.get('remarks') as string) || null;
-  const invoiceEmail = (formData.get('invoiceEmail') as string) || null;
+  
+  const address = (formData.get('address') as string) || null;
+  const phoneNumber = (formData.get('phoneNumber') as string) || null;
+  const contactEmail = (formData.get('contactEmail') as string) || null;
 
   if (!tenantName) throw new Error('ユーザー（企業）名は必須です');
 
-  // 会員登録と紐づける内容（付帯サービス申請情報）
+  // 初期メタデータ（連絡用メールのみ保持）
   const registrationMetadata = {
-    invoiceEmail,
-    // EC
-    ecRepName: formData.get('ecRepName') as string,
-    ecRepEmail: formData.get('ecRepEmail') as string,
-    ecPassword: formData.get('ecPassword') as string,
-    // Ku~chat
-    kuchatRepName: formData.get('kuchatRepName') as string,
-    kuchatRepEmail: formData.get('kuchatRepEmail') as string,
-    kuchatPassword: formData.get('kuchatPassword') as string,
-    // Seminar
-    seminarRepName: formData.get('seminarRepName') as string,
-    seminarRepEmail: formData.get('seminarRepEmail') as string,
-    seminarPassword: formData.get('seminarPassword') as string,
+    contactEmail,
+    invoiceEmail: contactEmail, // 初期値としてセット
   };
-
-  // サービスの認証情報（共通認証情報として別途保存する場合用）
-  const kuchatId = formData.get('kuchat_loginId') as string;
-  const kuchatPw = formData.get('kuchat_password') as string;
-  const directId = formData.get('direct_loginId') as string;
-  const directPw = formData.get('direct_password') as string;
-  const seminarId = formData.get('seminar_loginId') as string;
-  const seminarPw = formData.get('seminar_password') as string;
 
   await prisma.$transaction(async (tx) => {
     // テナント作成（メタデータ込み）
@@ -128,6 +112,8 @@ export async function createTenant(formData: FormData) {
         startYear, 
         paymentMethod, 
         remarks,
+        address,
+        phoneNumber,
         registrationMetadata: registrationMetadata as any
       }
     });
@@ -281,10 +267,40 @@ export async function updateTenantInfo(tenantId: string, formData: FormData) {
   const startYear = (formData.get('startYear') as string) || null;
   const paymentMethod = (formData.get('paymentMethod') as string) || null;
   const remarks = (formData.get('remarks') as string) || null;
+  const address = (formData.get('address') as string) || null;
+  const phoneNumber = (formData.get('phoneNumber') as string) || null;
+
+  // 付帯サービス連携情報の構築
+  const registrationMetadata = {
+    contactEmail: formData.get('contactEmail') as string,
+    invoiceEmail: formData.get('invoiceEmail') as string,
+    // EC
+    ecRepName: formData.get('ecRepName') as string,
+    ecRepEmail: formData.get('ecRepEmail') as string,
+    ecPassword: formData.get('ecPassword') as string,
+    // Ku~chat
+    kuchatRepName: formData.get('kuchatRepName') as string,
+    kuchatRepEmail: formData.get('kuchatRepEmail') as string,
+    kuchatPassword: formData.get('kuchatPassword') as string,
+    // Seminar
+    seminarRepName: formData.get('seminarRepName') as string,
+    seminarRepEmail: formData.get('seminarRepEmail') as string,
+    seminarPassword: formData.get('seminarPassword') as string,
+  };
 
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { name, maintenanceId, startMonth, startYear, paymentMethod, remarks }
+    data: { 
+      name, 
+      maintenanceId, 
+      startMonth, 
+      startYear, 
+      paymentMethod, 
+      remarks,
+      address,
+      phoneNumber,
+      registrationMetadata: registrationMetadata as any
+    }
   });
 
   revalidatePath('/dashboard/admin');
