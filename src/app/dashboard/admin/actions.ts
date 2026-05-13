@@ -95,6 +95,14 @@ export async function createTenant(formData: FormData) {
 
   if (!tenantName) throw new Error('ユーザー（企業）名は必須です');
 
+  // 企業の重複チェック
+  const existingTenant = await prisma.tenant.findFirst({
+    where: { name: tenantName }
+  });
+  if (existingTenant) {
+    throw new Error('この企業名は既に登録されています');
+  }
+
   // 初期メタデータ（連絡用メールのみ保持）
   const registrationMetadata = {
     contactEmail,
