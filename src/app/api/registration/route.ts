@@ -80,11 +80,15 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     
+    // 最初の一人目を管理者（TENANT_ADMIN）にする
+    const isFirstUser = tenant._count.users === 0;
+    const role = isFirstUser ? 'TENANT_ADMIN' : 'GENERAL_USER';
+
     // トランザクションでユーザー作成
     const newUser = await prisma.user.create({
       data: {
         tenantId: tenant.id,
-        role: 'GENERAL_USER', // 新規登録者は一般ユーザーとして作成
+        role,
         contactName,
         email,
         passwordHash,
