@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { Building2, Settings, ShoppingCart, MessageSquare, MonitorPlay, Mail, User } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Settings, ShoppingCart, MessageSquare, MonitorPlay, User } from 'lucide-react';
 import { CsvImportForm } from './csv-import-form';
 import { TenantList, MasterTenantRow } from './tenant-list';
 

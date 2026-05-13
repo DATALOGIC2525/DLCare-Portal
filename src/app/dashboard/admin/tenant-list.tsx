@@ -10,7 +10,7 @@ import { TenantUserTable } from './tenant-user-table';
 import { TenantSoftwareTable } from './tenant-software-table';
 import {
   Users, Lock, Settings, Edit, Monitor,
-  LayoutGrid, Download, X,
+  LayoutGrid, Download, X, ShoppingCart, MessageSquare, MonitorPlay,
 } from 'lucide-react';
 import {
   updateTenantLimit, toggleTenantStatus,

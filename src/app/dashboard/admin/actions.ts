@@ -128,8 +128,6 @@ export async function createTenant(formData: FormData) {
         }
       });
     }
-
-    }
   });
 
   revalidatePath('/dashboard/admin');
