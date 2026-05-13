@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { Building2, Settings } from 'lucide-react';
+import { Building2, Settings, ShoppingCart, MessageSquare, MonitorPlay, Mail, User } from 'lucide-react';
 import { CsvImportForm } from './csv-import-form';
 import { TenantList, MasterTenantRow } from './tenant-list';
 
@@ -73,43 +73,85 @@ export default async function AdminDashboard(props: { searchParams?: Promise<{ p
             <Building2 className="h-4 w-4" />
             新規ユーザー（顧客企業）登録
           </CardTitle>
-          <CardDescription className="text-xs">新しい顧客企業を登録します。</CardDescription>
+          <CardDescription className="text-xs">新しい顧客企業と、付帯サービスの連携情報を登録します。</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createTenant} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="tenantName" className="text-xs font-bold text-slate-700">ユーザー（企業）名 <span className="text-red-500">*</span></Label>
-              <Input id="tenantName" name="tenantName" placeholder="例：株式会社〇〇" required className="h-9 bg-white" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="userLimit" className="text-xs font-bold text-slate-700">利用可能ユーザー数（上限）</Label>
-              <Input id="userLimit" name="userLimit" type="number" defaultValue="10" className="h-9 bg-white" />
-            </div>
-            <div className="md:col-span-2 lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-emerald-100/50">
-              <div className="space-y-1">
-                <Label htmlFor="maintenanceId" className="text-[10px] font-bold text-emerald-700">保守ID</Label>
-                <Input id="maintenanceId" name="maintenanceId" placeholder="M-12345" className="h-8 text-xs bg-white" />
+          <form action={createTenant} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="tenantName" className="text-xs font-bold text-slate-700">ユーザー（企業）名 <span className="text-red-500">*</span></Label>
+                <Input id="tenantName" name="tenantName" placeholder="例：株式会社〇〇" required className="h-9 bg-white" />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="userLimit" className="text-xs font-bold text-slate-700">利用可能ユーザー数（上限）</Label>
+                <Input id="userLimit" name="userLimit" type="number" defaultValue="10" className="h-9 bg-white" />
+              </div>
+              <div className="md:col-span-2 lg:col-span-1 grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="maintenanceId" className="text-[10px] font-bold text-emerald-700">保守ID</Label>
+                  <Input id="maintenanceId" name="maintenanceId" placeholder="M-12345" className="h-9 text-xs bg-white" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="invoiceEmail" className="text-[10px] font-bold text-emerald-700">請求先メール <span className="text-red-500">*</span></Label>
+                  <Input id="invoiceEmail" name="invoiceEmail" type="email" required placeholder="billing@..." className="h-9 text-xs bg-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-emerald-100">
+              {/* EC */}
+              <div className="p-4 bg-white rounded-xl border border-emerald-100 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-emerald-700 uppercase tracking-wider">
+                  <ShoppingCart className="h-3.5 w-3.5" /> ECサイト
+                </div>
+                <Input name="ecRepName" placeholder="担当者氏名" className="h-8 text-[11px]" />
+                <Input name="ecRepEmail" type="email" placeholder="メールアドレス" className="h-8 text-[11px]" />
+                <Input name="ecPassword" type="password" placeholder="専用パスワード" className="h-8 text-[11px]" />
+              </div>
+
+              {/* Ku~chat */}
+              <div className="p-4 bg-white rounded-xl border border-blue-100 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-blue-700 uppercase tracking-wider">
+                  <MessageSquare className="h-3.5 w-3.5" /> く～chat
+                </div>
+                <Input name="kuchatRepName" placeholder="担当者氏名" className="h-8 text-[11px]" />
+                <Input name="kuchatRepEmail" type="email" placeholder="メールアドレス" className="h-8 text-[11px]" />
+                <Input name="kuchatPassword" type="password" placeholder="専用パスワード" className="h-8 text-[11px]" />
+              </div>
+
+              {/* Seminar */}
+              <div className="p-4 bg-white rounded-xl border border-indigo-100 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-indigo-700 uppercase tracking-wider">
+                  <MonitorPlay className="h-3.5 w-3.5" /> セミナー
+                </div>
+                <Input name="seminarRepName" placeholder="担当者氏名" className="h-8 text-[11px]" />
+                <Input name="seminarRepEmail" type="email" placeholder="メールアドレス" className="h-8 text-[11px]" />
+                <Input name="seminarPassword" type="password" placeholder="専用パスワード" className="h-8 text-[11px]" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <Label htmlFor="startYear" className="text-[10px] font-bold text-emerald-700">開始年度</Label>
+                <Label htmlFor="startYear" className="text-[10px] font-bold text-slate-500">開始年度</Label>
                 <Input id="startYear" name="startYear" placeholder="2024" className="h-8 text-xs bg-white" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="startMonth" className="text-[10px] font-bold text-emerald-700">開始月</Label>
+                <Label htmlFor="startMonth" className="text-[10px] font-bold text-slate-500">開始月</Label>
                 <Input id="startMonth" name="startMonth" placeholder="4" className="h-8 text-xs bg-white" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="paymentMethod" className="text-[10px] font-bold text-emerald-700">支払方法</Label>
+                <Label htmlFor="paymentMethod" className="text-[10px] font-bold text-slate-500">支払方法</Label>
                 <Input id="paymentMethod" name="paymentMethod" placeholder="振込" className="h-8 text-xs bg-white" />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="remarks" className="text-[10px] font-bold text-slate-500">備考</Label>
+                <Input id="remarks" name="remarks" placeholder="特記事項" className="h-8 text-xs bg-white" />
+              </div>
             </div>
-            <div className="md:col-span-2 lg:col-span-3 space-y-1">
-              <Label htmlFor="remarks" className="text-[10px] font-bold text-emerald-700">備考</Label>
-              <Input id="remarks" name="remarks" placeholder="特記事項があれば入力" className="h-8 text-xs bg-white" />
-            </div>
-            <div className="md:col-span-2 lg:col-span-3 pt-2">
-              <Button type="submit" className="w-full md:w-auto px-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm h-9">
-                顧客企業を登録
+
+            <div className="pt-2">
+              <Button type="submit" className="w-full md:w-auto px-12 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md font-bold h-10">
+                顧客企業と連携情報を登録
               </Button>
             </div>
           </form>

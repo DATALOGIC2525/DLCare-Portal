@@ -88,12 +88,11 @@ function LoginForm() {
             {loading ? 'ログイン中...' : 'ログイン'}
           </Button>
           <div className="text-sm text-center text-muted-foreground space-y-3">
-            <p>※ご担当者の方は管理者よりログイン情報をお受け取りください</p>
             <div className="pt-2 border-t border-slate-100">
-              <p className="mb-2">マスター管理より登録IDを受け取られた方はこちら</p>
+              <p className="mb-2">新規にポータルサイトをご利用される方はこちら</p>
               <Link href="/register">
-                <Button variant="outline" className="w-full text-primary hover:text-primary-foreground">
-                  登録IDを使用して新規アカウント作成
+                <Button variant="outline" className="w-full text-primary hover:text-primary-foreground font-bold border-primary/20">
+                  サービス利用申請・アカウント開設
                 </Button>
               </Link>
             </div>

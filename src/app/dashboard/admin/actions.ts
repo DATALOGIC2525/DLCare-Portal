@@ -74,8 +74,6 @@ import bcrypt from 'bcryptjs';
 
 /**
  * テナントを新規作成する。
- * 同時に、3つの主要サービス（く～chat・データロジックダイレクト・オンラインセミナー）の
- * テナント共通認証情報を保存する。
  */
 export async function createTenant(formData: FormData) {
   const session = await auth();
@@ -84,16 +82,34 @@ export async function createTenant(formData: FormData) {
   const tenantName = formData.get('tenantName') as string;
   const userLimit = parseInt(formData.get('userLimit') as string) || 10;
   
-  // 保守情報
+  // 保守・基本情報
   const maintenanceId = (formData.get('maintenanceId') as string) || null;
   const startMonth = (formData.get('startMonth') as string) || null;
   const startYear = (formData.get('startYear') as string) || null;
   const paymentMethod = (formData.get('paymentMethod') as string) || null;
   const remarks = (formData.get('remarks') as string) || null;
+  const invoiceEmail = (formData.get('invoiceEmail') as string) || null;
 
   if (!tenantName) throw new Error('ユーザー（企業）名は必須です');
 
-  // サービスの認証情報を取得
+  // 会員登録と紐づける内容（付帯サービス申請情報）
+  const registrationMetadata = {
+    invoiceEmail,
+    // EC
+    ecRepName: formData.get('ecRepName') as string,
+    ecRepEmail: formData.get('ecRepEmail') as string,
+    ecPassword: formData.get('ecPassword') as string,
+    // Ku~chat
+    kuchatRepName: formData.get('kuchatRepName') as string,
+    kuchatRepEmail: formData.get('kuchatRepEmail') as string,
+    kuchatPassword: formData.get('kuchatPassword') as string,
+    // Seminar
+    seminarRepName: formData.get('seminarRepName') as string,
+    seminarRepEmail: formData.get('seminarRepEmail') as string,
+    seminarPassword: formData.get('seminarPassword') as string,
+  };
+
+  // サービスの認証情報（共通認証情報として別途保存する場合用）
   const kuchatId = formData.get('kuchat_loginId') as string;
   const kuchatPw = formData.get('kuchat_password') as string;
   const directId = formData.get('direct_loginId') as string;
@@ -102,9 +118,18 @@ export async function createTenant(formData: FormData) {
   const seminarPw = formData.get('seminar_password') as string;
 
   await prisma.$transaction(async (tx) => {
-    // テナント作成
+    // テナント作成（メタデータ込み）
     const tenant = await tx.tenant.create({
-      data: { name: tenantName, userLimit, maintenanceId, startMonth, startYear, paymentMethod, remarks }
+      data: { 
+        name: tenantName, 
+        userLimit, 
+        maintenanceId, 
+        startMonth, 
+        startYear, 
+        paymentMethod, 
+        remarks,
+        registrationMetadata: registrationMetadata as any
+      }
     });
 
     // デフォルトですべてのサービスを表示設定にする

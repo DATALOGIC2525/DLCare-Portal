@@ -102,7 +102,7 @@ export default function RegisterPage() {
           <div className="mx-auto w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-2">
             <UserPlus className="h-6 w-6 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl font-black text-slate-800">新規アカウント作成</CardTitle>
+          <CardTitle className="text-2xl font-black text-slate-800">サービス利用申請・アカウント開設</CardTitle>
           <div className="flex items-center justify-center gap-2 mt-4">
             {[1, 2, 3].map((s) => (
               <div 

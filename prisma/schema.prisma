@@ -26,6 +26,7 @@ model Tenant {
   serviceAccesses TenantServiceAccess[]
   softwares       TenantSoftware[]
   announcements   Announcement[]     // お知らせとのリレーション
+  registrationMetadata Json?     // 会員登録に紐づく付帯サービス等の申請情報
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
