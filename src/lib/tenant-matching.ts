@@ -48,14 +48,16 @@ export function getEmailDomain(email: string): string {
 /**
  * スコアリングによるテナント照合
  * 
- * スコア計算:
- * - 名前（正規化後）が完全一致: 5点
- * - 名前（正規化後）が部分一致: 2点
- * - 電話番号（数字のみ）が一致: 3点
- * - メールドメインが一致: 2点
- * - 住所（都道府県・市区町村）が一致: 1点
+ * 優先順位: 会社名 > 住所 > メールドメイン
  * 
- * 閾値: 5点以上で「一致」と判定
+ * スコア計算:
+ * - 名前（正規化後）が完全一致: 10点
+ * - 住所（前方10文字）が一致: 5点
+ * - メールドメインが一致: 3点 (独自ドメインのみ)
+ * - 名前（正規化後）が部分一致: 2点
+ * - 電話番号（数字のみ）が一致: 1点
+ * 
+ * 閾値: 10点以上で候補とする
  */
 export function calculateMatchScore(
   input: TenantMatchInput,
@@ -66,9 +68,9 @@ export function calculateMatchScore(
   const normalizedInputName = normalizeCompanyName(input.name);
   const normalizedTargetName = normalizeCompanyName(target.name);
 
-  // 名前チェック
+  // 1. 名前チェック (最優先)
   if (normalizedInputName === normalizedTargetName) {
-    score += 5;
+    score += 10;
   } else if (
     normalizedTargetName.includes(normalizedInputName) ||
     normalizedInputName.includes(normalizedTargetName)
@@ -76,31 +78,29 @@ export function calculateMatchScore(
     score += 2;
   }
 
-  // 電話番号チェック
-  if (input.phoneNumber && target.phoneNumber) {
-    const p1 = normalizePhone(input.phoneNumber);
-    const p2 = normalizePhone(target.phoneNumber);
-    if (p1 === p2 && p1.length >= 10) {
+  // 2. 住所チェック (同名企業の判別用)
+  if (input.address && target.address) {
+    const a1 = input.address.replace(/\s+/g, '').slice(0, 10);
+    const a2 = target.address.replace(/\s+/g, '').slice(0, 10);
+    if (a1 === a2) {
+      score += 5;
+    }
+  }
+
+  // 3. ドメインチェック (最終的な絞り込み)
+  const inputDomain = getEmailDomain(input.email);
+  if (inputDomain && target.domains?.includes(inputDomain)) {
+    const genericDomains = ['gmail.com', 'yahoo.co.jp', 'outlook.jp', 'hotmail.com', 'icloud.com'];
+    if (!genericDomains.includes(inputDomain)) {
       score += 3;
     }
   }
 
-  // ドメインチェック
-  const inputDomain = getEmailDomain(input.email);
-  if (inputDomain && target.domains?.includes(inputDomain)) {
-    // 汎用ドメイン（gmail.com, yahoo.co.jp等）は除外するのが望ましいが、今回はシンプルに加点
-    const genericDomains = ['gmail.com', 'yahoo.co.jp', 'outlook.jp', 'hotmail.com', 'icloud.com'];
-    if (!genericDomains.includes(inputDomain)) {
-      score += 2;
-    }
-  }
-
-  // 住所チェック（簡易的な前方一致）
-  if (input.address && target.address) {
-    // 最初の10文字程度で比較（都道府県＋市区町村を想定）
-    const a1 = input.address.replace(/\s+/g, '').slice(0, 10);
-    const a2 = target.address.replace(/\s+/g, '').slice(0, 10);
-    if (a1 === a2) {
+  // 4. 電話番号チェック (補助)
+  if (input.phoneNumber && target.phoneNumber) {
+    const p1 = normalizePhone(input.phoneNumber);
+    const p2 = normalizePhone(target.phoneNumber);
+    if (p1 === p2 && p1.length >= 10) {
       score += 1;
     }
   }
@@ -108,4 +108,4 @@ export function calculateMatchScore(
   return score;
 }
 
-export const MATCH_THRESHOLD = 5;
+export const MATCH_THRESHOLD = 10;

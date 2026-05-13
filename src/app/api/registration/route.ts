@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { calculateMatchScore, MATCH_THRESHOLD } from '@/lib/tenant-matching';
+import { calculateMatchScore, MATCH_THRESHOLD, getEmailDomain } from '@/lib/tenant-matching';
 
 export async function POST(request: Request) {
   try {
@@ -19,23 +19,30 @@ export async function POST(request: Request) {
       });
     }
 
-    // 全テナントを取得してスコアリング（データ量が多い場合はフィルタリングが必要だが、一旦全取得）
+    // 全テナントを取得してスコアリング
     const allTenants = await prisma.tenant.findMany({
-      include: { _count: { select: { users: true } } }
+      include: { 
+        users: { select: { email: true } },
+        _count: { select: { users: true } } 
+      }
     });
 
     let bestMatch = null;
     let highestScore = 0;
 
     for (const tenant of allTenants) {
+      // 既存ユーザーのドメインを収集
+      const tenantDomains = Array.from(new Set(
+        tenant.users.map(u => getEmailDomain(u.email)).filter(Boolean)
+      ));
+
       const score = calculateMatchScore(
         { name: companyName, address, phoneNumber, email },
         { 
           name: tenant.name, 
           address: tenant.address, 
           phoneNumber: tenant.phoneNumber,
-          // 既存ユーザーのドメインを参考にする（簡易的）
-          domains: [] 
+          domains: tenantDomains
         }
       );
 
