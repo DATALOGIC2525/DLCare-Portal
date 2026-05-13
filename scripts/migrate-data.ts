@@ -285,23 +285,25 @@ async function migrate() {
   }
 
   // ============================================================
-  // 13. AuditLog
+  // 13. AuditLog（一括インサート）
   // ============================================================
   const auditLogs = sqlite.prepare('SELECT * FROM AuditLog').all() as any[];
-  console.log(`📋 監査ログ: ${auditLogs.length}件`);
-  for (const l of auditLogs) {
-    await prisma.auditLog.upsert({
-      where: { id: l.id },
-      create: {
+  console.log(`📋 監査ログ: ${auditLogs.length}件（バッチ処理中...）`);
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < auditLogs.length; i += BATCH_SIZE) {
+    const batch = auditLogs.slice(i, i + BATCH_SIZE);
+    await prisma.auditLog.createMany({
+      data: batch.map((l: any) => ({
         id: l.id,
         userId: l.userId ?? null,
         action: l.action,
         target: l.target ?? null,
         metadata: l.metadata ?? null,
         createdAt: new Date(l.createdAt),
-      },
-      update: {},
+      })),
+      skipDuplicates: true,
     });
+    console.log(`  → ${Math.min(i + BATCH_SIZE, auditLogs.length)}/${auditLogs.length} 件完了`);
   }
 
   console.log('\n✅ データ移行が完了しました！');
