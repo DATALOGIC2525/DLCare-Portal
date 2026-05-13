@@ -129,29 +129,6 @@ export async function createTenant(formData: FormData) {
       });
     }
 
-    // サービス名でServiceレコードを取得して、テナント共通認証情報を保存
-    const serviceMap: Record<string, { loginId: string; password: string }> = {};
-    if (kuchatId) serviceMap['く～chat'] = { loginId: kuchatId, password: kuchatPw };
-    if (directId) serviceMap['データロジックダイレクト'] = { loginId: directId, password: directPw };
-    if (seminarId) serviceMap['オンラインセミナー'] = { loginId: seminarId, password: seminarPw };
-
-    if (Object.keys(serviceMap).length > 0) {
-      const services = await tx.service.findMany({
-        where: { name: { in: Object.keys(serviceMap) } }
-      });
-      for (const svc of services) {
-        const cred = serviceMap[svc.name];
-        if (cred?.loginId) {
-          await tx.tenantCredential.create({
-            data: {
-              tenantId: tenant.id,
-              serviceId: svc.id,
-              loginId: cred.loginId,
-              password: cred.password || null,
-            }
-          });
-        }
-      }
     }
   });
 
