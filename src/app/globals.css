@@ -148,3 +148,14 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.10);
 }
+
+/* ── スクロールバーを隠すユーティリティ ── */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+}

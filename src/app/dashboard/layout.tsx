@@ -76,7 +76,7 @@ export default async function DashboardLayout({
         signOutAction={handleSignOut}
       />
       {/* ── メインコンテンツエリア ── */}
-      <main className="flex-1 relative overflow-y-auto bg-slate-50 flex flex-col">
+      <main className="flex-1 relative overflow-y-auto bg-slate-50 flex flex-col pt-14 md:pt-0">
         {children}
       </main>
 

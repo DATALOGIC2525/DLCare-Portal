@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "migrate:data": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/migrate-data.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -36,9 +38,11 @@
     "@prisma/client": "^6.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^12.10.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "prisma": "^6.0.0",

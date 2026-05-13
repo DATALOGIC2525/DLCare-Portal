@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownPreview } from '@/components/markdown-preview';
@@ -30,13 +30,12 @@ interface RibbonDashboardProps {
 }
 
 export function RibbonDashboard({ services, credMap, accents, variantMap, userRole }: RibbonDashboardProps) {
-  // 初期値の読み込みをマウント後に行うためのハイドレーション対策
   const [selectedId, setSelectedId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // マウント時に前回選択していたIDと折りたたみ状態を復旧
   useEffect(() => {
-    // 選択IDの復旧
     const savedId = sessionStorage.getItem('dlcare_last_service_id');
     if (savedId && services.some(s => s.id === savedId)) {
       setSelectedId(savedId);
@@ -44,7 +43,6 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
       setSelectedId(services[0]?.id ?? '');
     }
 
-    // 折りたたみ状態の復旧
     const savedCollapsed = sessionStorage.getItem('dlcare_ribbon_collapsed');
     if (savedCollapsed === 'true') {
       setIsCollapsed(true);
@@ -62,6 +60,29 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     sessionStorage.setItem('dlcare_ribbon_collapsed', String(newState));
+  };
+
+  // ドラッグスクロールの実装
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  };
+
+  const onMouseLeave = () => setIsDragging(false);
+  const onMouseUp = () => setIsDragging(false);
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // スクロール速度の倍率
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
   const selectedService = services.find(s => s.id === selectedId);
@@ -91,8 +112,8 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
         <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-200"
           style={{ background: '#1E3A8A' }}>
           <div className="flex items-center gap-4">
-            <span className="text-white font-bold text-sm tracking-wide">ポータルサービス一覧</span>
-            <span className="text-blue-300 text-xs">— ログイン情報を確認・コピーします</span>
+            <span className="text-white font-bold text-xs md:text-sm tracking-wide ml-10 md:ml-0">ポータルサービス一覧</span>
+            <span className="hidden md:inline text-blue-300 text-xs">— ログイン情報を確認・コピーします</span>
           </div>
           
           <button 
@@ -109,10 +130,17 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
 
         {/* リボン本体 - アニメーション付き */}
         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[160px] opacity-100'}`}>
-          <div className="flex w-full overflow-x-auto">
+          <div 
+            ref={scrollContainerRef}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+            className={`flex w-full overflow-x-auto scrollbar-hide select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`}
+          >
             {dynamicGroups.map((group) => (
               <div key={group.label} className="flex border-r border-slate-200 last:border-r-0">
-                <div className="flex flex-col min-w-[120px]">
+                <div className="flex flex-col min-w-[100px] md:min-w-[120px]">
                   {/* ボタン行 */}
                   <div className="flex items-start px-2 pt-2 pb-1 gap-1">
                     {group.svcs.map(svc => {
@@ -123,8 +151,8 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
                       return (
                         <button
                           key={svc.id}
-                          onClick={() => handleSelect(svc.id)}
-                          className="flex flex-col items-center px-2 py-2 rounded-md transition-all w-20 text-center group"
+                          onClick={() => !isDragging && handleSelect(svc.id)}
+                          className="flex flex-col items-center px-1 md:px-2 py-2 rounded-md transition-all w-16 md:w-20 text-center group"
                           style={{
                             background: isSelected ? `${accent}20` : 'transparent',
                             border: isSelected ? `1px solid ${accent}60` : '1px solid transparent',
@@ -132,7 +160,7 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
                           title={svc.name}
                         >
                           <div
-                            className="w-14 h-14 rounded-xl flex items-center justify-center mb-1.5 transition-all group-hover:scale-105"
+                            className="w-11 h-11 md:w-14 md:h-14 rounded-xl flex items-center justify-center mb-1.5 transition-all group-hover:scale-105"
                             style={{
                               background: isSelected
                                 ? `linear-gradient(145deg, ${accent}, ${accent}BB)`
@@ -141,12 +169,12 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
                             }}
                           >
                             <Icon
-                              className="h-7 w-7 transition-all"
+                              className="h-5 w-5 md:h-7 md:w-7 transition-all"
                               style={{ color: isSelected ? '#fff' : accent }}
                             />
                           </div>
                           <span
-                            className="text-[10px] leading-tight font-medium text-center line-clamp-2"
+                            className="text-[9px] md:text-[10px] leading-tight font-medium text-center line-clamp-2"
                             style={{
                               color: isSelected ? accent : '#374151',
                             }}
@@ -159,7 +187,7 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
                   </div>
                   {/* グループラベル */}
                   <div className="px-2 pb-1 border-t border-slate-200 pt-1 text-center">
-                    <span className="text-[9px] text-slate-400 tracking-wide font-bold">{group.label}</span>
+                    <span className="text-[8px] md:text-[9px] text-slate-400 tracking-wide font-bold">{group.label}</span>
                   </div>
                 </div>
               </div>
@@ -169,7 +197,7 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
       </div>
 
       {/* ── 詳細パネル ── */}
-      <div className="flex-1 p-4 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 p-2 md:p-4 flex flex-col min-h-0 overflow-hidden">
         {selectedService ? (
           <div className="flex-1 w-full flex flex-col min-h-0">
             {/* パネルタイトルバー */}
@@ -180,21 +208,21 @@ export function RibbonDashboard({ services, credMap, accents, variantMap, userRo
               <div className="w-6 h-6 bg-white/20 rounded-md flex items-center justify-center shrink-0">
                 <SelectedIcon className="h-3.5 w-3.5 text-white" />
               </div>
-              <div className="flex-1 flex items-baseline gap-2">
-                <div className="font-bold text-[13px] tracking-tight">{selectedService.name}</div>
+              <div className="flex-1 flex items-baseline gap-2 overflow-hidden">
+                <div className="font-bold text-[12px] md:text-[13px] tracking-tight truncate">{selectedService.name}</div>
                 {selectedCred?.isShared && (
-                  <span className="text-[9px] text-white/80 font-medium">テナント共通設定</span>
+                  <span className="hidden sm:inline text-[8px] md:text-[9px] text-white/80 font-medium">テナント共通</span>
                 )}
               </div>
               {selectedService.name === 'く～chat' && selectedCred && (
-                <div className="flex items-center bg-white p-1 px-2 rounded-md border border-white/20 shadow-sm shrink-0">
+                <div className="hidden sm:flex items-center bg-white p-1 px-2 rounded-md border border-white/20 shadow-sm shrink-0">
                   <CredentialsMini cred={selectedCred} accent={selectedAccent} />
                 </div>
               )}
             </div>
 
             {/* コンテンツカード */}
-            <div className={`bg-white rounded-b-xl shadow-xl border border-t-0 border-slate-200 flex-1 flex flex-col min-h-0 relative ${selectedService.name === 'く～chat' ? 'overflow-hidden' : `p-6 overflow-auto ${selectedService.name === 'オンラインセミナー' ? '' : 'space-y-6'}`}`}>
+            <div className={`bg-white rounded-b-xl shadow-xl border border-t-0 border-slate-200 flex-1 flex flex-col min-h-0 relative ${selectedService.name === 'く～chat' || selectedService.name === 'スタートサポート' ? 'overflow-hidden' : `p-4 md:p-6 overflow-auto ${selectedService.name === 'オンラインセミナー' ? '' : 'space-y-4 md:space-y-6'}`}`}>
               
               {/* サービス別 特別コンテンツ */}
               {selectedService.name === 'く～chat' ? (

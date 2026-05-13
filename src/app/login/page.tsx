@@ -102,45 +102,6 @@ function LoginForm() {
       </form>
     </Card>
 
-    {/* プレゼン・開発用クイック入力（開発環境のみ表示） */}
-    {process.env.NODE_ENV === 'development' && (
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg shadow-sm space-y-3">
-        <div className="text-[10px] font-bold text-amber-700 uppercase tracking-widest text-center">Presentation Support (Dev Only)</div>
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-[10px] h-8 bg-white border-amber-300 text-amber-800 hover:bg-amber-100"
-            onClick={() => {
-              const emailInput = document.getElementById('email') as HTMLInputElement;
-              if (emailInput) {
-                emailInput.value = 'admin@example.com';
-                const passwordInput = document.getElementById('password') as HTMLInputElement;
-                if (passwordInput) passwordInput.focus();
-              }
-            }}
-          >
-            システム管理者
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-[10px] h-8 bg-white border-amber-300 text-amber-800 hover:bg-amber-100"
-            onClick={() => {
-              const emailInput = document.getElementById('email') as HTMLInputElement;
-              if (emailInput) {
-                emailInput.value = 'test@datalogic.co.jp';
-                const passwordInput = document.getElementById('password') as HTMLInputElement;
-                if (passwordInput) passwordInput.focus();
-              }
-            }}
-          >
-            テストユーザー
-          </Button>
-        </div>
-        <p className="text-[9px] text-amber-600 text-center italic">※クリックするとメールアドレスが自動入力されます。パスワードを入力してログインしてください。</p>
-      </div>
-    )}
     </div>
   );
 }
