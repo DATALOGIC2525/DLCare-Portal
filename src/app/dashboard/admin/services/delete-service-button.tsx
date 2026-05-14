@@ -33,10 +33,8 @@ export function DeleteServiceButton({ serviceId, serviceName }: { serviceId: str
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0" title="削除">
-          <Trash2 className="h-4 w-4" />
-        </Button>
+      <DialogTrigger render={<Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0" title="削除" />}>
+        <Trash2 className="h-4 w-4" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -81,10 +79,8 @@ export function DeleteVariantButton({ variantId, label }: { variantId: string; l
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0" title="バリアント削除">
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+      <DialogTrigger render={<Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0" title="バリアント削除" />}>
+        <Trash2 className="h-3.5 w-3.5" />
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
