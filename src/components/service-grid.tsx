@@ -20,7 +20,7 @@ export function ServiceGrid({ services, accents }: ServiceGridProps) {
   return (
     <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-white custom-scrollbar">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {services.map((svc, index) => {
             const Icon = (Icons as any)[svc.iconName || 'Link'] || Icons.Link;
             const accent = accents[svc.name] || '#0BBFDF';
