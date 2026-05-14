@@ -104,7 +104,13 @@ export function RibbonDashboard({ services, selectedId, credMap, accents, varian
                   {/* アクションバー: 認証情報とボタン */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-8">
                     <div className="flex-1 min-w-[300px]">
-                      <CredentialsPanel cred={selectedCred!} accent={selectedAccent} />
+                      {selectedCred ? (
+                        <CredentialsPanel cred={selectedCred} accent={selectedAccent} />
+                      ) : (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-400 font-medium italic">
+                          ログイン情報が設定されていません
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex flex-col items-end gap-4 shrink-0">
@@ -208,7 +214,8 @@ export function RibbonDashboard({ services, selectedId, credMap, accents, varian
 }
 
 // 認証情報パネル（標準）
-function CredentialsPanel({ cred, accent }: { cred: Credential; accent: string }) {
+function CredentialsPanel({ cred, accent }: { cred: Credential | null; accent: string }) {
+  if (!cred) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-1.5">

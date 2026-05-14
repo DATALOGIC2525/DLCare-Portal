@@ -139,11 +139,11 @@ export function DashboardSidebar({
         className={cn(
           "group flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold transition-all relative",
           isSelected 
-            ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" 
+            ? "bg-primary/10 text-primary border border-primary/20" 
             : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
         )}
       >
-        <Icon className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-400")} />
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-primary" : "text-slate-500 group-hover:text-slate-400")} />
         <span className={cn("truncate", isCollapsed && "md:hidden")}>{svc.name}</span>
         
         {!isCollapsed && (
@@ -151,12 +151,12 @@ export function DashboardSidebar({
             onClick={(e) => toggleFavorite(e, svc.id)}
             className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <Star className={cn("h-3 w-3", isFav ? "fill-yellow-500 text-yellow-500" : "text-slate-600")} />
+            <Star className={cn("h-3 w-3", isFav ? "fill-[#D84C7E] text-[#D84C7E]" : "text-slate-600")} />
           </button>
         )}
         
         {isSelected && !isCollapsed && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-cyan-500 rounded-l-full" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-l-full" />
         )}
       </Link>
     );
@@ -189,8 +189,8 @@ export function DashboardSidebar({
         {/* ロゴ */}
         <div className={cn("py-5 border-b border-slate-800/50 flex items-center px-4 justify-between", isCollapsed && "md:px-0 md:justify-center")}>
           <Link href="/dashboard" className={cn("flex items-center gap-2.5 group", isCollapsed && "md:gap-0")}>
-            <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
-              <Icons.Shield className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-lg shadow-white/10 group-hover:scale-110 transition-transform overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
             </div>
             {!isCollapsed && (
               <div className="animate-in fade-in slide-in-from-left-2 duration-300">

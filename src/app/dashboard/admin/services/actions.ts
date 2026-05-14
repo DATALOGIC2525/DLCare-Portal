@@ -39,9 +39,21 @@ export async function createService(formData: FormData) {
 
   if (!name) throw new Error('サービス名は必須です');
 
-  await prisma.service.create({
+  const service = await prisma.service.create({
     data: { name, url, iconName, groupLabel, sortOrder, description }
   });
+
+  // 既存の全テナントに対して、この新規サービスへのアクセス権をデフォルトで付与する
+  const tenants = await prisma.tenant.findMany({ select: { id: true } });
+  if (tenants.length > 0) {
+    await prisma.tenantServiceAccess.createMany({
+      data: tenants.map(t => ({
+        tenantId: t.id,
+        serviceId: service.id
+      })),
+      skipDuplicates: true
+    });
+  }
 
   revalidatePath('/dashboard/admin/services');
   revalidatePath('/dashboard');
@@ -51,18 +63,33 @@ export async function deleteService(serviceId: string) {
   const session = await auth();
   if (session?.user?.role !== 'SYSTEM_ADMIN') throw new Error('Unauthorized');
 
-  // 関連するクレデンシャルを先に削除
-  await prisma.userCredential.deleteMany({ where: { serviceId } });
-  await prisma.tenantCredential.deleteMany({ where: { serviceId } });
+  await prisma.$transaction(async (tx) => {
+    // 関連する認証情報を削除
+    await tx.userCredential.deleteMany({ where: { serviceId } });
+    await tx.tenantCredential.deleteMany({ where: { serviceId } });
+    
+    // テナントのアクセス権を削除
+    await tx.tenantServiceAccess.deleteMany({ where: { serviceId } });
 
-  // バリアントとそのアクセス権も削除
-  const variants = await prisma.serviceVariant.findMany({ where: { serviceId } });
-  for (const v of variants) {
-    await prisma.tenantVariantAccess.deleteMany({ where: { variantId: v.id } });
-  }
-  await prisma.serviceVariant.deleteMany({ where: { serviceId } });
+    // バリアントに関連するアクセス権とバリアント本体を削除
+    const variants = await tx.serviceVariant.findMany({ 
+      where: { serviceId },
+      select: { id: true }
+    });
+    const variantIds = variants.map(v => v.id);
+    
+    if (variantIds.length > 0) {
+      await tx.tenantVariantAccess.deleteMany({
+        where: { variantId: { in: variantIds } }
+      });
+      await tx.serviceVariant.deleteMany({
+        where: { id: { in: variantIds } }
+      });
+    }
 
-  await prisma.service.delete({ where: { id: serviceId } });
+    // 最後にサービス本体を削除
+    await tx.service.delete({ where: { id: serviceId } });
+  });
 
   revalidatePath('/dashboard/admin/services');
   revalidatePath('/dashboard');
